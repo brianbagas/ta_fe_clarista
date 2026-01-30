@@ -276,15 +276,18 @@ const checkAvailability = async () => {
             }
         });
         
-        rooms.value = response.data.data; // Sesuaikan dengan struktur JSON controller
-        
-        if(rooms.value.length === 0) {
-            showSnackbar('warning', 'Tidak ada data kamar ditemukan.');
+        if (response.success) {
+            rooms.value = response.data;
+            
+            if(rooms.value.length === 0) {
+                showSnackbar('warning', 'Tidak ada data kamar ditemukan.');
+            }
+        } else {
+            showSnackbar('error', response.message || 'Gagal mengecek ketersediaan.');
         }
-
     } catch (error) {
         console.error(error);
-        showSnackbar('error', 'Gagal mengecek ketersediaan.');
+        showSnackbar('error', error.response?.data?.message || 'Gagal mengecek ketersediaan.');
     } finally {
         loading.value = false;
     }
@@ -314,18 +317,19 @@ const submitWalkIn = async () => {
             nama_pemesan: form.value.nama_pemesan,
             no_hp: form.value.no_hp,
             kamar_id: selectedRoom.value.id_kamar, // atau id_kamar
-            check_in: form.value.check_in,
+            check_in_date: form.value.check_in,
             durasi: parseInt(form.value.durasi),
             jumlah_kamar: parseInt(form.value.jumlah_kamar)
         };
 
         const response = await axios.post('/admin/pemesanan-offline', payload);
 
-        showSnackbar('success', 'Check-in Berhasil! Transaksi tersimpan.');
-        
-        // Reset Form setelah sukses
-        resetForm();
-
+        if (response.success) {
+            showSnackbar('success', response.message || 'Check-in Berhasil! Transaksi tersimpan.');
+            
+            // Reset Form setelah sukses
+            resetForm();
+        }
     } catch (error) {
         console.error(error);
         const msg = error.response?.data?.message || 'Terjadi kesalahan sistem.';

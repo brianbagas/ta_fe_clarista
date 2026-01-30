@@ -1,9 +1,10 @@
 <template>
   <v-container>
-    <v-btn to="/admin/pemesanan" variant="text" class="mb-4">
-      <v-icon left>mdi-arrow-left</v-icon>
-      Kembali ke Riwayat
-    </v-btn>
+    <div class="d-flex w-100 mb-4">
+        <v-btn to="/admin/pesanan" variant="text" prepend-icon="mdi-arrow-left">
+        Kembali ke Riwayat
+        </v-btn>
+    </div>
 
     <div v-if="loading" class="text-center py-10">
       <v-progress-circular indeterminate color="primary" size="64"></v-progress-circular>
@@ -14,162 +15,216 @@
 
     <div v-else-if="pesanan">
         <!-- Header Pesanan -->
-        <v-card variant="outlined" class="mb-6">
-            <v-card-title class="d-flex justify-space-between align-center bg-grey-lighten-4 pa-4">
+        <v-card elevation="0" border class="mb-6 rounded-lg">
+            <div class="d-flex justify-space-between align-center pa-4 bg-grey-lighten-5 border-b">
                 <div>
-                    <div class="text-h5 font-weight-bold">Detail Transaksi</div>
-                    <div class="text-subtitle-2 text-grey">Kode Booking: #{{ pesanan.id }}</div>
+                    <h1 class="text-h5 font-weight-bold text-primary">Order #{{ pesanan.kode_booking }}</h1>
+                    <div class="text-caption text-grey-darken-1">Dibuat pada: {{ formatDate(pesanan.created_at) }}</div>
                 </div>
-                <v-chip :color="getStatusColor(pesanan.status_pemesanan)" size="large" label class="text-uppercase font-weight-bold">
-                {{ pesanan.status_pemesanan.replace('_', ' ') }}
-                </v-chip>
-            </v-card-title>
+                <div class="d-flex align-center gap-2">
+                    <v-chip :color="getStatusColor(pesanan.status_pemesanan)" variant="elevated" class="text-uppercase font-weight-bold mr-2">
+                         {{ pesanan.status_pemesanan.replace('_', ' ') }}
+                    </v-chip>
+                    
+                    <v-btn 
+                        v-if="['menunggu_pembayaran', 'menunggu_konfirmasi', 'dikonfirmasi'].includes(pesanan.status_pemesanan)"
+                        color="error"
+                        variant="tonal"
+                        prepend-icon="mdi-close"
+                        @click="cancelDialog = true"
+                    >
+                        Batalkan
+                    </v-btn>
+                </div>
+            </div>
             
-            <v-card-text class="pa-4">
+            <v-card-text class="pa-6">
                 <v-row>
                     <v-col cols="12" md="6">
-                        <div class="text-subtitle-1 font-weight-bold mb-1">Data Tamu</div>
-                        <v-list density="compact" class="pa-0">
-                             <v-list-item prepend-icon="mdi-account" class="px-0">
-                                <v-list-item-title>{{ pesanan.user.name }}</v-list-item-title>
-                             </v-list-item>
-                             <v-list-item prepend-icon="mdi-email" class="px-0">
-                                <v-list-item-title>{{ pesanan.user.email }}</v-list-item-title>
-                             </v-list-item>
-                        </v-list>
+                        <div class="d-flex align-center mb-4">
+                            <v-avatar color="primary" variant="tonal" class="mr-3">
+                                <v-icon>mdi-account</v-icon>
+                            </v-avatar>
+                            <div>
+                                <div class="text-subtitle-2 text-grey">Tamu</div>
+                                <div class="text-body-1 font-weight-medium">{{ pesanan.user.name }}</div>
+                                <div class="text-caption">{{ pesanan.user.email }}</div>
+                            </div>
+                        </div>
                     </v-col>
-                    <v-col cols="12" md="6">
-                        <div class="text-subtitle-1 font-weight-bold mb-1">Informasi Inap</div>
-                        <v-list density="compact" class="pa-0">
-                            <v-list-item prepend-icon="mdi-calendar-arrow-right" class="px-0">
-                                <v-list-item-title>Check In: {{ formatDate(pesanan.tanggal_check_in) }}</v-list-item-title>
-                            </v-list-item>
-                             <v-list-item prepend-icon="mdi-calendar-arrow-left" class="px-0">
-                                <v-list-item-title>Check Out: {{ formatDate(pesanan.tanggal_check_out) }}</v-list-item-title>
-                            </v-list-item>
-                        </v-list>
+                    
+                    <v-divider vertical class="d-none d-md-flex mx-4" inset></v-divider>
+
+                    <v-col cols="12" md="5">
+                         <div class="d-flex align-center mb-4">
+                            <v-avatar color="info" variant="tonal" class="mr-3">
+                                <v-icon>mdi-calendar-range</v-icon>
+                            </v-avatar>
+                            <div>
+                                <div class="text-subtitle-2 text-grey">Jadwal Menginap</div>
+                                <div class="text-body-1 font-weight-medium">
+                                    {{ formatDate(pesanan.tanggal_check_in) }} — {{ formatDate(pesanan.tanggal_check_out) }}
+                                </div>
+                                <div class="text-caption text-primary font-weight-bold">
+                                    {{ calculateDuration(pesanan.tanggal_check_in, pesanan.tanggal_check_out) }} Malam
+                                </div>
+                            </div>
+                        </div>
                     </v-col>
                 </v-row>
             </v-card-text>
         </v-card>
 
         <!-- Bagian Operasional Check-in / Check-out -->
-        <h2 class="text-h6 font-weight-bold mb-3 d-flex align-center">
-            <v-icon start color="primary">mdi-door-open</v-icon>
-            Manajemen Kamar & Check-in
+        <h2 class="text-h6 font-weight-bold mb-4 mt-8 d-flex align-center">
+            <v-icon start color="primary" class="mr-2">mdi-bed-outline</v-icon>
+            Manajemen Kamar & Akses
         </h2>
 
-        <div v-for="detail in pesanan.detail_pemesanans" :key="detail.id" class="mb-6">
-            <v-card elevation="2" class="border-t-4 border-primary">
-                <v-card-title class="d-flex justify-space-between">
-                    <span>
-                        {{ detail.kamar.tipe_kamar }} <span class="text-grey text-subtitle-1">(x{{ detail.jumlah_kamar }})</span>
+        <div v-for="detail in pesanan.detail_pemesanans" :key="detail.id" class="mb-4">
+            <v-card elevation="0" border class="rounded-lg overflow-hidden">
+                <div class="bg-blue-lighten-5 px-4 py-3 d-flex justify-space-between align-center">
+                    <span class="text-subtitle-1 font-weight-bold text-blue-darken-3">
+                        {{ detail.kamar.tipe_kamar }} <span class="text-body-2 font-weight-regular text-grey-darken-2 ms-2">({{ detail.jumlah_kamar }} Unit)</span>
                     </span>
-                    <v-chip color="blue" size="small" variant="flat">ID Detail: {{ detail.id }}</v-chip>
-                </v-card-title>
+                </div>
 
-                <v-card-text>
+                <v-card-text class="pa-0">
                     <!-- List Unit yang Sudah Check-in -->
                     <div v-if="detail.penempatan_kamars && detail.penempatan_kamars.length > 0">
-                        <div class="text-subtitle-2 mb-2">Unit Terisi:</div>
-                        <v-table density="compact" class="mb-4 bg-grey-lighten-5 rounded">
-                            <thead>
+                        <v-table density="comfortable" hover>
+                            <thead class="bg-grey-lighten-4">
                                 <tr>
-                                    <th>Unit</th>
-                                    <th>Status</th>
-                                    <th>Waktu Masuk</th>
-                                    <th>Waktu Keluar</th>
-                                    <th>Aksi</th>
+                                    <th class="text-left text-caption font-weight-bold text-uppercase text-grey-darken-1 pl-6">Unit</th>
+                                    <th class="text-left text-caption font-weight-bold text-uppercase text-grey-darken-1">Status</th>
+                                    <th class="text-center text-caption font-weight-bold text-uppercase text-grey-darken-1">Check In</th>
+                                    <th class="text-center text-caption font-weight-bold text-uppercase text-grey-darken-1">Check Out</th>
+                                    <th class="text-right text-caption font-weight-bold text-uppercase text-grey-darken-1 pr-6">Aksi</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 <tr v-for="placement in detail.penempatan_kamars" :key="placement.id">
-                                    <td class="font-weight-bold text-primary">
-                                        {{ placement.kamar_unit ? placement.kamar_unit.nama_unit : 'Unit Terhapus' }}
+                                    <td class="text-left pl-6 font-weight-bold text-body-2">
+                                        {{ placement.kamar_unit ? placement.kamar_unit.nomor_unit : '?' }}
                                     </td>
-                                    <td>
-                                        <v-chip size="x-small" :color="placement.status_penempatan === 'assigned' ? 'success' : 'grey'">
+                                    <td class="text-left">
+                                        <v-chip 
+                                            size="x-small" 
+                                            :color="getPlacementColor(placement.status_penempatan)"
+                                            class="font-weight-bold"
+                                        >
                                             {{ placement.status_penempatan.toUpperCase() }}
                                         </v-chip>
                                     </td>
-                                    <td>{{ formatTime(placement.check_in_aktual) }}</td>
-                                    <td>{{ placement.check_out_aktual ? formatTime(placement.check_out_aktual) : '-' }}</td>
-                                    <td>
+                                    <td class="text-center text-caption">{{ placement.check_in_aktual ? formatTime(placement.check_in_aktual) : '-' }}</td>
+                                    <td class="text-center text-caption">{{ placement.check_out_aktual ? formatTime(placement.check_out_aktual) : '-' }}</td>
+                                    <td class="text-right pr-6">
                                         <v-btn
                                             v-if="placement.status_penempatan === 'assigned'"
                                             color="error"
-                                            size="x-small"
-                                            variant="flat"
+                                            size="small"
+                                            variant="tonal"
                                             prepend-icon="mdi-logout"
+                                            class="text-none"
                                             :loading="loadingAction === placement.id"
                                             @click="handleCheckOut(placement.id)"
                                         >
                                             Check Out
                                         </v-btn>
-                                        <span v-else class="text-caption text-grey italic">Selesai</span>
+
+                                        <v-btn
+                                            v-else-if="placement.status_penempatan === 'pending' && pesanan.status_pemesanan !== 'batal'"
+                                            color="primary"
+                                            size="small"
+                                            variant="flat"
+                                            prepend-icon="mdi-login"
+                                            class="text-none"
+                                            :disabled="pesanan.status_pemesanan === 'menunggu_pembayaran'"
+                                            :loading="loadingAction === placement.id"
+                                            @click="handlePendingCheckIn(detail.id, placement.kamar_unit_id, placement.id)"
+                                        >
+                                            Proses Masuk
+                                        </v-btn>
+                                        <span v-else>
+                                            <v-btn
+                                                v-if="placement.status_penempatan === 'checked_out' && placement.kamar_unit?.status_unit !== 'available'"
+                                                color="success"
+                                                size="small"
+                                                variant="outlined"
+                                                prepend-icon="mdi-broom"
+                                                class="text-none"
+                                                :loading="loadingAction === placement.id"
+                                                @click="handleSetAvailable(placement.kamar_unit_id, placement.id)"
+                                            >
+                                                Sudah Bersih
+                                            </v-btn>
+                                            <span v-else class="text-caption text-grey italic ml-2">
+                                                {{ placement.status_penempatan === 'cancelled' ? 'Dibatalkan' : 'Selesai' }}
+                                            </span>
+                                        </span>
                                     </td>
                                 </tr>
                             </tbody>
                         </v-table>
                     </div>
                 
-                    <!-- Form Check New Unit -->
-                    <div v-if="getUnassignedCount(detail) > 0" class="mt-3 pa-3 bg-blue-lighten-5 rounded border-dashed">
-                       <div class="d-flex align-center justify-space-between mb-2">
-                           <div class="text-subtitle-2 text-blue-darken-3">
-                               <v-icon start size="small">mdi-plus-circle</v-icon>
-                               Input Check-in Baru (Sisa: {{ getUnassignedCount(detail) }})
-                           </div>
-                       </div>
-                       
-                       <v-row dense align="center">
-                           <v-col cols="12" sm="8">
-                               <v-select
-                                   v-model="selectedUnits[detail.id]"
-                                   :items="availableUnits[detail.kamar_id] || []"
-                                   item-title="nama_unit"
-                                   item-value="id"
-                                   label="Pilih Unit Kamar Fisik"
-                                   density="compact"
-                                   variant="outlined"
-                                   hide-details
-                                   placeholder="Pilih nomor kamar..."
-                                   @click="fetchUnits(detail.kamar_id)"
-                               ></v-select>
-                           </v-col>
-                           <v-col cols="12" sm="4">
-                               <v-btn 
-                                   block 
-                                   color="primary" 
-                                   prepend-icon="mdi-login"
-                                   :disabled="!selectedUnits[detail.id]"
-                                   :loading="loadingAction === 'in-' + detail.id"
-                                   @click="handleCheckIn(detail.id, selectedUnits[detail.id])"
-                               >
-                                   Proses Masuk
-                               </v-btn>
-                           </v-col>
-                       </v-row>
-                    </div>
-
-                    <v-alert v-else type="success" variant="tonal" density="compact" class="mt-2" border="start">
-                        Semua kamar pada detail pesanan ini telah ditempatkan.
+                    <v-alert v-else type="success" variant="tonal" class="ma-4" density="compact">
+                        Semua kamar telah ditempatkan.
                     </v-alert>
 
                 </v-card-text>
             </v-card>
         </div>
 
-
         <!-- Rincian Biaya Bottom -->
-        <v-card variant="flat" class="mt-6 bg-grey-lighten-4">
-             <v-card-text class="d-flex justify-space-between align-center">
-                 <div class="text-h6 text-grey-darken-1">Total Tagihan</div>
-                 <div class="text-h4 font-weight-bold text-primary">Rp {{ formatPrice(pesanan.total_bayar) }}</div>
+        <v-card elevation="0" class="mt-8 bg-grey-lighten-4 rounded-lg border-dashed">
+             <v-card-text class="d-flex justify-space-between align-center pa-6">
+                 <div>
+                    <div class="text-h6 font-weight-bold text-grey-darken-3">Total Tagihan</div>
+                    <div class="text-caption text-grey">Sudah termasuk pajak & biaya layanan</div>
+                 </div>
+                 <div class="text-h3 font-weight-bold text-primary">Rp {{ formatPrice(pesanan.total_bayar) }}</div>
              </v-card-text>
         </v-card>
 
     </div>
+
+    <!-- Cancel Booking Dialog -->
+    <v-dialog v-model="cancelDialog" max-width="600">
+      <v-card>
+        <v-card-title class="text-h5 bg-error text-white">
+          Batalkan Pemesanan
+        </v-card-title>
+        <v-card-text class="pt-4">
+          <p class="mb-3">Apakah Anda yakin ingin membatalkan pemesanan ini?</p>
+          <v-alert type="warning" variant="tonal" density="compact" class="mb-4">
+            <strong>Order #{{ pesanan.kode_booking }}</strong><br>
+            Tindakan ini akan membatalkan seluruh pemesanan.
+          </v-alert>
+          <v-textarea
+            v-model="cancelReason"
+            label="Alasan Pembatalan (Wajib)"
+            placeholder="Contoh: Tamu membatalkan karena perubahan jadwal"
+            variant="outlined"
+            rows="3"
+            :rules="[v => !!v || 'Alasan wajib diisi', v => (v && v.length >= 10) || 'Alasan minimal 10 karakter']"
+          ></v-textarea>
+        </v-card-text>
+        <v-card-actions>
+          <v-spacer></v-spacer>
+          <v-btn variant="text" @click="cancelDialog = false">Batal</v-btn>
+          <v-btn 
+            color="error" 
+            variant="flat" 
+            @click="confirmCancelBooking" 
+            :loading="cancelling"
+            :disabled="!cancelReason || cancelReason.length < 10"
+          >
+            Ya, Batalkan Pesanan
+          </v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
 
     <!-- Snackbar -->
     <v-snackbar v-model="snackbar.show" :color="snackbar.color" timeout="3000">
@@ -195,63 +250,55 @@ const error = ref(null);
 const loadingAction = ref(null);
 
 // Data Pendukung
-const availableUnits = reactive({}); // penyimpanan cache unit { kamar_id: [list_unit] }
-const selectedUnits = reactive({}); // v-model dropdown { detail_id: unit_id }
 const snackbar = ref({ show: false, text: '', color: '' });
+const cancelDialog = ref(false);
+const cancelReason = ref('');
+const cancelling = ref(false);
 
 // 1. Fetch Detail Pesanan
 const fetchPesanan = async () => {
     loading.value = true;
     try {
         const response = await apiClient.get(`/admin/pemesanan/${pesananId}`);
-        pesanan.value = response.data;
-        
-        // Inisialisasi unit list untuk setiap kamar agar reaktif
-        if(pesanan.value.detail_pemesanans) {
-            pesanan.value.detail_pemesanans.forEach(d => {
-                fetchUnits(d.kamar_id); // Auto fetch units saat load
-            });
+        if (response.success) {
+            pesanan.value = response.data;
+            
+            // Inisialisasi unit list untuk setiap kamar agar reaktif
+            // if(pesanan.value.detail_pemesanans) {
+            //     pesanan.value.detail_pemesanans.forEach(d => {
+            //         // fetchUnits(d.kamar_id); // Auto fetch removed
+            //     });
+            // }
+        } else {
+            error.value = response.message || 'Gagal memuat detail pesanan.';
         }
     } catch (err) {
-        error.value = 'Gagal memuat detail pesanan.';
+        error.value = err.response?.data?.message || 'Gagal memuat detail pesanan.';
         console.error(err);
     } finally {
         loading.value = false;
     }
 };
 
-// 2. Fetch Kamar Unit
-const fetchUnits = async (kamarId) => {
-    // Jika sudah ada data, skip (opsional, kalau mau refresh terus bisa dihapus if-nya)
-    // Tapi disini kita load ulang jaga-jaga status berubah
-    try {
-        const response = await apiClient.get('/kamar_units', { params: { kamar_id: kamarId } });
-        // Filter hanya yang available atau maintenance (bisa dipaksa admin? sebaiknya hanya available)
-        // Kita tampilkan semua biar admin tau, tapi beri tanda
-        availableUnits[kamarId] = response.data.data.map(u => ({
-            ...u,
-            title: `${u.nama_unit} (${u.status_unit})` // Utk display kalau pakai item-title="title"
-        }));
-    } catch (err) {
-        console.error("Gagal load unit", err);
-    }
-};
 
-// 3. Action Check In
-const handleCheckIn = async (detailId, unitId) => {
+
+// 3.5 Action Check In (Existing Pending Unit)
+const handlePendingCheckIn = async (detailId, unitId, placementId) => {
     if(!confirm("Konfirmasi tamu masuk (Check-in) ke unit ini?")) return;
     
-    loadingAction.value = 'in-' + detailId;
+    loadingAction.value = placementId;
     try {
-        await apiClient.post('/admin/check-in', {
+        const response = await apiClient.post('/admin/check-in', {
             detail_pemesanan_id: detailId,
             kamar_unit_id: unitId
         });
-        showSnackbar('success', 'Berhasil Check-in!');
         
-        // Reset pilihan & Refresh Data
-        selectedUnits[detailId] = null;
-        await fetchPesanan(); 
+        if (response.success) {
+            showSnackbar('success', response.message || 'Berhasil Check-in!');
+            await fetchPesanan();
+        } else {
+            showSnackbar('error', response.message || 'Gagal Check-in');
+        }
     } catch (err) {
         showSnackbar('error', err.response?.data?.message || 'Gagal Check-in');
     } finally {
@@ -265,9 +312,13 @@ const handleCheckOut = async (penempatanId) => {
 
     loadingAction.value = penempatanId;
     try {
-        await apiClient.post(`/admin/check-out/${penempatanId}`);
-        showSnackbar('success', 'Berhasil Check-out!');
-        await fetchPesanan();
+        const response = await apiClient.post(`/admin/check-out/${penempatanId}`);
+        if (response.success) {
+            showSnackbar('success', response.message || 'Berhasil Check-out!');
+            await fetchPesanan();
+        } else {
+            showSnackbar('error', response.message || 'Gagal Check-out');
+        }
     } catch (err) {
         showSnackbar('error', err.response?.data?.message || 'Gagal Check-out');
     } finally {
@@ -275,10 +326,64 @@ const handleCheckOut = async (penempatanId) => {
     }
 };
 
+// Action Set Available 
+const handleSetAvailable = async (unitId, placementId) => {
+    if(!confirm("Pastikan kamar sudah dibersihkan. Set status menjadi AVAILABLE?")) return;
+
+    loadingAction.value = placementId;
+    try {
+        // Kita gunakan endpoint set-available yang sudah ada check di backend
+        const response = await apiClient.put(`/admin/kamar-units/${unitId}`, {
+            status_unit: 'available'
+        });
+        
+        if (response.success) {
+            showSnackbar('success', 'Status unit berhasil diubah menjadi AVAILABLE.');
+            await fetchPesanan();
+        } else {
+            showSnackbar('error', response.message || 'Gagal mengubah status unit');
+        }
+    } catch (err) {
+        showSnackbar('error', err.response?.data?.message || 'Gagal mengubah status unit');
+    } finally {
+        loadingAction.value = null;
+    }
+};
+
+// 5. Cancel Booking by Owner
+const confirmCancelBooking = async () => {
+    if (!cancelReason.value) {
+        showSnackbar('error', 'Alasan pembatalan wajib diisi');
+        return;
+    }
+    
+    cancelling.value = true;
+    try {
+        const response = await apiClient.post(`/admin/pemesanan/${pesananId}/cancel`, {
+            alasan: cancelReason.value
+        });
+        
+        if (response.success) {
+            showSnackbar('success', response.message || 'Pemesanan berhasil dibatalkan');
+            cancelDialog.value = false;
+            cancelReason.value = '';
+            await fetchPesanan();
+        } else {
+            showSnackbar('error', response.message || 'Gagal membatalkan pemesanan');
+        }
+    } catch (err) {
+        showSnackbar('error', err.response?.data?.message || 'Gagal membatalkan pemesanan');
+    } finally {
+        cancelling.value = false;
+    }
+};
+
+
+
 
 // Helpers
 const getUnassignedCount = (detail) => {
-    const assigned = detail.penempatan_kamars ? detail.penempatan_kamars.filter(p => p.status_penempatan === 'assigned').length : 0;
+    const assigned = detail.penempatan_kamars ? detail.penempatan_kamars.filter(p => ['assigned', 'pending'].includes(p.status_penempatan)).length : 0;
     // Kita ijinkan checkin sebanyak jumlah kamar pesanan
     // Jika 1 kamar tapi history check-in sudah 5 (karena gonta ganti), tetap harus hitung yg AKTIF saja
     return Math.max(0, detail.jumlah_kamar - assigned);
@@ -288,6 +393,21 @@ const getStatusColor = (status) => {
     if (status === 'dikonfirmasi' || status === 'selesai' || status === 'confirmed') return 'success';
     if (status === 'menunggu_pembayaran') return 'warning';
     return 'grey';
+};
+
+const getPlacementColor = (status) => {
+    switch(status) {
+        case 'assigned': return 'success';
+        case 'pending': return 'warning';
+        case 'cancelled': return 'error';
+        default: return 'grey';
+    }
+};
+
+const calculateDuration = (inDate, outDate) => {
+    const start = new Date(inDate);
+    const end = new Date(outDate);
+    return Math.max(1, Math.round((end - start) / (1000 * 60 * 60 * 24)));
 };
 
 const formatDate = (date) => new Date(date).toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });

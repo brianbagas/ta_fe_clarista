@@ -43,7 +43,7 @@
             <div class="bg-grey-lighten-5 px-5 py-3 d-flex justify-space-between align-center border-b">
               <div class="d-flex align-center text-caption text-grey-darken-1">
                 <v-icon size="small" start>mdi-receipt</v-icon>
-                <span class="font-weight-bold mr-2">ORDER #{{ pesanan.id }}</span>
+                <span class="font-weight-bold mr-2">ORDER #{{ pesanan.kode_booking }}</span>
                 <span class="text-grey">• Dipesan {{ formatDate(pesanan.created_at) }}</span>
               </div>
               <v-chip :color="getStatusColor(pesanan.status_pemesanan)" size="small" label class="font-weight-bold">
@@ -57,7 +57,7 @@
                   <div v-for="detail in pesanan.detail_pemesanans" :key="detail.id" class="d-flex mb-4">
                     <v-avatar rounded="lg" size="80" class="me-4 bg-grey-lighten-2">
                       <v-img 
-                        :src="detail.kamar.image || 'https://via.placeholder.com/150'" 
+                        :src="detail.kamar.thumbnail || 'https://via.placeholder.com/150'" 
                         cover
                       ></v-img>
                     </v-avatar>
@@ -81,14 +81,28 @@
 
                 <v-col cols="12" md="4" class="pa-5 bg-blue-grey-lighten-5 d-flex flex-column justify-center align-end">
                   <div class="text-caption text-grey-darken-1">Total Pembayaran</div>
-                  <div class="text-h5 font-weight-bold text-primary mb-4">
+                  <div class="text-h5 font-weight-bold text-primary mb-1">
                     Rp {{ formatCurrency(pesanan.total_bayar) }}
                   </div>
 
+                  <!-- Countdown Timer Display -->
+                  <div v-if="pesanan.status_pemesanan === 'menunggu_pembayaran' && countdowns[pesanan.id]" class="mb-4 text-right">
+                    <v-chip
+                        :color="countdowns[pesanan.id] === 'Waktu Habis' ? 'error' : 'warning'"
+                        variant="flat"
+                        size="small"
+                        class="font-weight-bold"
+                    >
+                        <v-icon start icon="mdi-clock-outline"></v-icon>
+                        {{ countdowns[pesanan.id] }}
+                    </v-chip>
+                  </div>
+                  <div v-else class="mb-4"></div>
+
                   <div class="d-flex gap-2 flex-wrap justify-end">
                     <v-btn 
-                      v-if="pesanan.status_pemesanan === 'menunggu_pembayaran'"
-                      :to="{ name: 'bayar-pesanan', params: { id: pesanan.id } }"
+                      v-if="pesanan.status_pemesanan === 'menunggu_pembayaran' && countdowns[pesanan.id] !== 'Waktu Habis'"
+                      :to="{ name: 'BayarPesanan', params: { id: pesanan.id } }"
                       color="orange-darken-1"
                       variant="flat"
                       prepend-icon="mdi-credit-card"
@@ -97,11 +111,21 @@
                     </v-btn>
                     
                     <v-btn 
-                      :to="{ name: 'detail-pesanan', params: { id: pesanan.id } }"
+                      :to="{ name: 'DetailPesanan', params: { id: pesanan.id } }"
                       variant="outlined" 
                       color="blue-grey"
                     >
                       Detail
+                    </v-btn>
+                    
+                    <v-btn 
+                      v-if="['menunggu_pembayaran', 'menunggu_konfirmasi'].includes(pesanan.status_pemesanan)"
+                      @click="openCancelDialog(pesanan)"
+                      variant="outlined" 
+                      color="error"
+                      prepend-icon="mdi-close-circle"
+                    >
+                      Batalkan
                     </v-btn>
                   </div>
                 </v-col>
@@ -112,30 +136,107 @@
 
       </v-col>
     </v-row>
+
+    <!-- Cancel Booking Dialog -->
+    <v-dialog v-model="cancelDialog" max-width="500">
+      <v-card>
+        <v-card-title class="text-h5 bg-error text-white">
+          Batalkan Pemesanan?
+        </v-card-title>
+        <v-card-text class="pt-4">
+          <p class="mb-2">Apakah Anda yakin ingin membatalkan pemesanan ini?</p>
+          <v-alert v-if="selectedPesanan" type="info" variant="tonal" density="compact" class="mt-3">
+            <strong>Order #{{ selectedPesanan.kode_booking }}</strong><br>
+            Total: Rp {{ formatCurrency(selectedPesanan.total_bayar) }}
+          </v-alert>
+          <p class="text-caption text-grey mt-3">Tindakan ini tidak dapat dibatalkan.</p>
+        </v-card-text>
+        <v-card-actions>
+          <v-spacer></v-spacer>
+          <v-btn variant="text" @click="cancelDialog = false">Batal</v-btn>
+          <v-btn color="error" variant="flat" @click="confirmCancel" :loading="cancelling">
+            Ya, Batalkan
+          </v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
+
+    <!-- Snackbar -->
+    <v-snackbar v-model="snackbar.show" :color="snackbar.color" timeout="3000">
+      {{ snackbar.text }}
+    </v-snackbar>
   </v-container>
 </template>
 
 <script setup>
-import { ref, onMounted, computed } from 'vue';
+import { ref, onMounted, onUnmounted, computed } from 'vue';
 import apiClient from '../../axios';
 
 const pemesanans = ref([]);
 const loading = ref(true);
 const error = ref(null);
 const activeTab = ref('all'); // State untuk tab aktif
+const cancelDialog = ref(false);
+const selectedPesanan = ref(null);
+const cancelling = ref(false);
+const snackbar = ref({ show: false, text: '', color: 'success' });
+const countdowns = ref({});
+let timerInterval = null;
 
 const fetchRiwayat = async () => {
   try {
     const response = await apiClient.get('/pemesanan');
-    // Urutkan dari yang terbaru (ID terbesar/Created At terbaru)
-    pemesanans.value = response.data.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+    if (response.success) {
+      // Urutkan dari yang terbaru (ID terbesar/Created At terbaru)
+      pemesanans.value = response.data.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+      startCountdown();
+    } else {
+      error.value = response.message || 'Gagal memuat riwayat pemesanan.';
+    }
   } catch (err) {
-    error.value = 'Gagal memuat riwayat pemesanan.';
+    error.value = err.response?.data?.message || 'Gagal memuat riwayat pemesanan.';
     console.error(err);
   } finally {
     loading.value = false;
   }
 };
+
+// --- COUNTDOWN LOGIC ---
+const startCountdown = () => {
+    // Clear existing interval if any to avoid duplicates
+    if (timerInterval) clearInterval(timerInterval);
+
+    // Initial update
+    updateCountdowns();
+
+    // Set interval
+    timerInterval = setInterval(updateCountdowns, 1000);
+};
+
+const updateCountdowns = () => {
+    const now = new Date().getTime();
+    
+    pemesanans.value.forEach(pesanan => {
+        if (pesanan.status_pemesanan === 'menunggu_pembayaran' && pesanan.expired_at) {
+            const expiredTime = new Date(pesanan.expired_at).getTime();
+            const distance = expiredTime - now;
+
+            if (distance < 0) {
+                countdowns.value[pesanan.id] = "Waktu Habis";
+            } else {
+                const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+                const seconds = Math.floor((distance % (1000 * 60)) / 1000);
+                
+                countdowns.value[pesanan.id] = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+            }
+        }
+    });
+};
+
+onUnmounted(() => {
+    if (timerInterval) clearInterval(timerInterval);
+});
 
 // --- LOGIC FILTER TAB ---
 const filteredList = computed(() => {
@@ -185,6 +286,50 @@ const calculateNights = (checkIn, checkOut) => {
   const end = new Date(checkOut);
   const diff = end - start;
   return Math.ceil(diff / (1000 * 60 * 60 * 24));
+};
+
+// --- CANCEL BOOKING FUNCTIONS ---
+const openCancelDialog = (pesanan) => {
+  selectedPesanan.value = pesanan;
+  cancelDialog.value = true;
+};
+
+const confirmCancel = async () => {
+  if (!selectedPesanan.value) return;
+  
+  cancelling.value = true;
+  try {
+    const response = await apiClient.post(`/pemesanan/${selectedPesanan.value.id}/cancel`);
+    
+    if (response.success) {
+      snackbar.value = {
+        show: true,
+        text: response.message || 'Pemesanan berhasil dibatalkan',
+        color: 'success'
+      };
+      
+      cancelDialog.value = false;
+      selectedPesanan.value = null;
+      
+      // Refresh data
+      await fetchRiwayat();
+    } else {
+      snackbar.value = {
+        show: true,
+        text: response.message || 'Gagal membatalkan pemesanan',
+        color: 'error'
+      };
+    }
+  } catch (err) {
+    snackbar.value = {
+      show: true,
+      text: err.response?.data?.message || 'Gagal membatalkan pemesanan',
+      color: 'error'
+    };
+    console.error('Cancel error:', err);
+  } finally {
+    cancelling.value = false;
+  }
 };
 
 onMounted(fetchRiwayat);

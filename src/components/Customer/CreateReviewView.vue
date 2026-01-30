@@ -79,7 +79,9 @@ const pesananId = route.params.id;
 onMounted(async () => {
   try {
     const response = await apiClient.get(`/pemesanan/${pesananId}`);
-    pesanan.value = response.data;
+    if (response.success) {
+      pesanan.value = response.data;
+    }
   } catch (err) {
     console.error('Gagal memuat data pesanan:', err);
   }
@@ -94,15 +96,16 @@ const submitReview = async () => {
       komentar: komentar.value,
     });
     
-    snackbar.value = { show: true, text: response.data.message, color: 'success' };
-    
-    setTimeout(() => {
-      router.push('/pesanan-saya');
-    }, 2000);
-
+    if (response.success) {
+      snackbar.value = { show: true, text: response.message || 'Review berhasil dikirim', color: 'success' };
+      
+      setTimeout(() => {
+        router.push('/pesanan-saya');
+      }, 2000);
+    }
   } catch (error) {
-    console.error('Gagal mengirim review:', error.response.data);
-    snackbar.value = { show: true, text: error.response.data.message || 'Gagal mengirim review.', color: 'error' };
+    console.error('Gagal mengirim review:', error.response?.data);
+    snackbar.value = { show: true, text: error.response?.data?.message || 'Gagal mengirim review.', color: 'error' };
   } finally {
     loading.value = false;
   }

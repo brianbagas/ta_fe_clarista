@@ -70,7 +70,7 @@
                   <v-card variant="outlined" class="rounded-lg overflow-hidden border-opacity-50">
                     <v-row no-gutters>
                       <v-col cols="12" sm="4">
-                        <v-img :src="kamar.image || '/placeholder-room.jpg'" height="100%" cover class="bg-grey-lighten-2">
+                        <v-img :src="kamar.thumbnail || '/placeholder-room.jpg'" height="100%" cover class="bg-grey-lighten-2">
                           <template v-slot:placeholder>
                             <v-row class="fill-height ma-0" align="center" justify="center">
                               <v-progress-circular indeterminate color="grey-lighten-5"></v-progress-circular>
@@ -232,9 +232,13 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, watch } from 'vue';
+import { ref, reactive, computed, watch, onMounted } from 'vue';
+import { useRoute, useRouter } from 'vue-router'; // Import useRoute and useRouter
 import axios from '../../axios'; // Pastikan path ini sesuai
 import * as auth from '../../stores/auth.js'; 
+
+const route = useRoute(); // Initialize route
+const router = useRouter(); // Initialize router
 
 const isLoading = ref(false);
 const isFetchingRooms = ref(false);
@@ -250,6 +254,14 @@ const promoError = ref(false);
 
 const form = reactive({ checkIn: '', checkOut: '', kodePromo: '' });
 const today = new Date().toISOString().split('T')[0];
+
+onMounted(() => {
+    if (route.query.checkIn && route.query.checkOut) {
+        form.checkIn = route.query.checkIn;
+        form.checkOut = route.query.checkOut;
+        fetchAvailability();
+    }
+});
 
 // --- LOGIC PERHITUNGAN ---
 
@@ -328,7 +340,12 @@ const fetchAvailability = async () => {
     const response = await axios.get('/cek-ketersediaan', {
       params: { check_in: form.checkIn, check_out: form.checkOut }
     });
-    listMasterKamar.value = response.data.data || response.data;
+    if (response.success) {
+      listMasterKamar.value = response.data;
+    } else {
+      errorMessage.value = response.message || "Gagal memuat data.";
+      listMasterKamar.value = [];
+    }
   } catch (error) {
     console.error("Error:", error);
     errorMessage.value = error.response?.data?.message || "Gagal memuat data.";
@@ -362,13 +379,18 @@ const applyPromo = async () => {
             total_transaksi: subTotalRaw.value // Kirim total saat ini ke BE
         };
 
-        const response = await axios.post('/cek-promo', payload);
+        const response = await axios.post('/promo/check', payload);
         
-        // Simpan data promo dari backend
-        appliedPromo.value = response.data.data;
-        promoMessage.value = `Promo berhasil digunakan! Hemat Rp ${formatPrice(appliedPromo.value.nilai_potongan)}`;
-        promoError.value = false;
-
+        if (response.success) {
+            // Simpan data promo dari backend
+            appliedPromo.value = response.data;
+            promoMessage.value = `Promo berhasil digunakan! Hemat Rp ${formatPrice(appliedPromo.value.nilai_potongan)}`;
+            promoError.value = false;
+        } else {
+            appliedPromo.value = null;
+            promoError.value = true;
+            promoMessage.value = response.message || "Kode promo tidak valid / syarat tidak terpenuhi.";
+        }
     } catch (error) {
         appliedPromo.value = null;
         promoError.value = true;
@@ -431,18 +453,27 @@ const submitReservation = async () => {
       kode_promo: appliedPromo.value ? appliedPromo.value.kode_promo : null 
     };
     
-    await axios.post('/pemesanan', payload);
-    alert("Berhasil! Silakan lakukan pembayaran.");
-    
-    // Redirect atau Reset
-    cart.value = {};
-    removePromo();
-    // router.push('/history') // jika ada
+    const response = await axios.post('/pemesanan', payload);
+    if (response.success) {
+      // Redirect to Upload Payment Proof page
+      cart.value = {};
+      removePromo();
+      router.push({ name: 'BayarPesanan', params: { id: response.data.id } });
+    }
   } catch (error) {
     // Handle specific error promo habis saat last second
     if (error.response?.status === 409) {
         alert(error.response.data.message);
         removePromo(); // Paksa user cek ulang promo
+    } else if (error.response?.status === 422) {
+        // Show validation errors details
+        const errors = error.response.data.errors;
+        let msg = "Validasi Gagal:\n";
+        for (const key in errors) {
+            msg += `- ${errors[key][0]}\n`;
+        }
+        alert(msg);
+        errorMessage.value = msg;
     } else {
         errorMessage.value = error.response?.data?.message || "Gagal memproses pesanan.";
     }

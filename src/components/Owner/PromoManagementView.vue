@@ -37,6 +37,23 @@
           </span>
         </template>
 
+        <template v-slot:[`item.min_transaksi`]="{ item }">
+          {{ formatRupiah(item.min_transaksi) }}
+        </template>
+
+        <template v-slot:[`item.kuota`]="{ item }">
+           {{ item.kuota ? item.kuota : 'Unlimited' }}
+        </template>
+
+        <template v-slot:[`item.is_active`]="{ item }">
+          <v-chip
+            :color="item.is_active ? 'success' : 'grey'"
+            size="small"
+          >
+            {{ item.is_active ? 'Aktif' : 'Non-Aktif' }}
+          </v-chip>
+        </template>
+
         <template #[`item.actions`]="{ item }">
           <v-icon icon="mdi-pencil" size="large"  @click="openEditDialog(item)">
             mdi-pencil
@@ -88,6 +105,31 @@
                   :prefix="editedItem.tipe_diskon === 'nominal' ? 'Rp' : ''"
                   :suffix="editedItem.tipe_diskon === 'persen' ? '%' : ''"
                 ></v-text-field>
+              </v-col>
+              <v-col cols="12" sm="6">
+                <v-text-field
+                  v-model="editedItem.min_transaksi"
+                  label="Minimal Transaksi"
+                  type="number"
+                  variant="outlined"
+                  prefix="Rp"
+                ></v-text-field>
+              </v-col>
+              <v-col cols="12" sm="6">
+                <v-text-field
+                  v-model="editedItem.kuota"
+                  label="Kuota (Kosongkan jika Unlimited)"
+                  type="number"
+                  variant="outlined"
+                ></v-text-field>
+              </v-col>
+              <v-col cols="12">
+                 <v-switch
+                  v-model="editedItem.is_active"
+                  :label="`Status: ${editedItem.is_active ? 'Aktif' : 'Non-Aktif'}`"
+                  color="success"
+                  hide-details
+                ></v-switch>
               </v-col>
               <v-col cols="12" sm="6">
                 <v-text-field
@@ -144,8 +186,7 @@
 </template>
 <script setup>
 import { ref, reactive, computed, onMounted, nextTick } from 'vue';
-// 1. Import apiClient yang sudah memiliki Interceptor
-import apiClient from '../../axios'; // <-- SESUAIKAN PATH INI!
+import apiClient from '../../axios'; 
 
 
 // State Dasar
@@ -179,6 +220,10 @@ const headers = [
     { title: 'Kode Promo', key: 'kode_promo' },
     { title: 'Tipe Diskon', key: 'tipe_diskon' },
     { title: 'Nilai Diskon', key: 'nilai_diskon' },
+    { title: 'Min. Transaksi', key: 'min_transaksi' },
+    { title: 'Kuota', key: 'kuota' },
+    { title: 'Terpakai', key: 'kuota_terpakai' },
+    { title: 'Status', key: 'is_active' },
     { title: 'Berlaku Mulai', key: 'berlaku_mulai' },
     { title: 'Berlaku Selesai', key: 'berlaku_selesai' },
     { title: 'Aksi', key: 'actions', sortable: false },
@@ -191,6 +236,10 @@ const defaultItem = {
     deskripsi: '',
     tipe_diskon: 'persen',
     nilai_diskon: 0,
+    min_transaksi: 0,
+    kuota: null,
+    kuota_terpakai: 0,
+    is_active: true,
     berlaku_mulai: new Date().toISOString().substr(0, 10),
     berlaku_selesai: new Date().toISOString().substr(0, 10),
 };
@@ -204,8 +253,8 @@ const fetchPromos = async () => {
         // TIDAK PERLU HEADER OTENTIKASI MANUAL KARENA SUDAH ADA INTERCEPTOR!
         const response = await apiClient.get(API_URL);
         console.log('Error details 2:');
-        // Asumsi data promo ada di response.data.data
-        promos.value = response.data.data ;
+        // Data promo ada di response.data (karena interceptor di axios.js sudah meng-unwrap response.data level axios)
+        promos.value = response.data;
     } catch (error) {
       console.log('Error details 3:');
         console.error('Error fetching data:', error);
@@ -227,29 +276,36 @@ const saveItemApi = async (item) => {
         if (editedIndex.value > -1) {
             // Logika UPDATE (PUT)
             response = await apiClient.put(`${API_URL}/${item.id}`, dataToSave);
-            Object.assign(promos.value[editedIndex.value], response.data.data || response.data); 
+            if (response.success) {
+                Object.assign(promos.value[editedIndex.value], response.data);
+                dialog.value = false;
+            }
         } else {
             // Logika CREATE (POST)
             delete dataToSave.id; // Pastikan ID tidak terkirim saat create
             response = await apiClient.post(API_URL, dataToSave);
-            promos.value.push(response.data.data || response.data); 
-            dialog.value = false;
+            if (response.success) {
+                promos.value.push(response.data);
+                dialog.value = false;
+            }
         }
     } catch (error) {
         console.error('Error saving data:', error.response || error);
-        errorMessage.value = 'Gagal menyimpan promo: ' + (error.response?.data?.message || 'Terjadi kesalahan server.');
+        errorMessage.value = error.response?.data?.message || 'Gagal menyimpan promo';
         throw error; 
     }
 };
 const openAddDialog = () => {
   isEditing.value = false;
-  editedItem.value = { id_kamar: null, tipe_kamar: '', deskripsi: '', harga: 0 };
+  editedIndex.value = -1;
+  Object.assign(editedItem, defaultItem);
   dialog.value = true;
 };
 
 const openEditDialog = (item) => {
   isEditing.value = true;
-  editedItem.value = { ...item };
+  editedIndex.value = promos.value.indexOf(item); // Keep track of index if needed
+  Object.assign(editedItem, item);
   dialog.value = true;
 };
 const openDeleteDialog = (item) => {

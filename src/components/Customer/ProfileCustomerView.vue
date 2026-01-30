@@ -54,6 +54,7 @@
                         variant="outlined"
                         prepend-inner-icon="mdi-phone"
                         hint="Penting untuk konfirmasi reservasi"
+                        @input="profileData.no_hp = profileData.no_hp.replace(/[^0-9]/g, '')"
                       ></v-text-field>
                     </v-col>
                   </v-row>
@@ -136,16 +137,16 @@ onMounted(() => {
 const handleUpdate = async () => {
   loading.value = true;
   try {
-    // Pastikan Controller Laravel menangani field no_hp dan gender
     const response = await apiClient.put('/profil', profileData.value);
     
-    // Refresh state user
-    await auth.fetchUser(); 
-
-    snackbar.value = { show: true, text: 'Profil berhasil diperbarui!', color: 'success' };
+    if (response.success) {
+      // Refresh state user
+      await auth.fetchUser(); 
+      snackbar.value = { show: true, text: response.message || 'Profil berhasil diperbarui!', color: 'success' };
+    }
   } catch (error) {
     console.error('Update profil gagal:', error);
-    snackbar.value = { show: true, text: 'Gagal memperbarui profil.', color: 'error' };
+    snackbar.value = { show: true, text: error.response?.data?.message || 'Gagal memperbarui profil.', color: 'error' };
   } finally {
     loading.value = false;
   }

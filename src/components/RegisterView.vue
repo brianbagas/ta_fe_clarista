@@ -27,6 +27,30 @@
               ></v-text-field>
 
               <v-text-field
+                v-model="no_hp"
+                label="Nomor HP"
+                prepend-inner-icon="mdi-phone"
+                variant="outlined"
+                color="primary"
+                type="tel"
+                placeholder="Contoh: 08123456789"
+                class="mb-2"
+                required
+                @input="no_hp = no_hp.replace(/[^0-9]/g, '')"
+              ></v-text-field>
+
+              <v-select
+                v-model="gender"
+                label="Jenis Kelamin"
+                prepend-inner-icon="mdi-gender-male-female"
+                :items="['pria', 'wanita']"
+                variant="outlined"
+                color="primary"
+                class="mb-2"
+                required
+              ></v-select>
+
+              <v-text-field
                 v-model="email"
                 label="Email"
                 prepend-inner-icon="mdi-email"
@@ -111,6 +135,8 @@ import { register } from '../stores/auth' // Pastikan path sesuai
 
 const name = ref('')
 const email = ref('')
+const no_hp = ref('')
+const gender = ref(null)
 const password = ref('')
 const password_confirmation = ref('')
 const error = ref(null)
@@ -138,6 +164,11 @@ const handleRegister = async () => {
       error.value = "Password minimal 8 karakter."
       return
   }
+  
+  if (!no_hp.value || !gender.value) {
+      error.value = "Mohon lengkapi semua data."
+      return
+  }
 
   isLoading.value = true
 
@@ -145,6 +176,8 @@ const handleRegister = async () => {
     await register({
       name: name.value,
       email: email.value,
+      no_hp: no_hp.value,
+      gender: gender.value,
       password: password.value,
       password_confirmation: password_confirmation.value,
     })

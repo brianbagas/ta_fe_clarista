@@ -118,19 +118,15 @@ export default {
           }
         });
 
-        console.log("Respon dari Server:", response); 
-        console.log("Isi Data:", response.data);
-
-        if(response.data.meta.code === 200) {
-            this.laporan = response.data.data;
-
-            console.log("Data berhasil dimuat:", this.laporan);
-            console.log("Data Transaksi berhasil dimuat:", this.laporan.transaksi);
-            
+        if (response.success) {
+          this.laporan = response.data;
+          console.log("Data berhasil dimuat:", this.laporan);
+        } else {
+          alert(response.message || "Gagal mengambil data laporan.");
         }
       } catch (error) {
         console.error("Gagal ambil laporan", error);
-        alert("Gagal mengambil data laporan.");
+        alert(error.response?.data?.message || "Gagal mengambil data laporan.");
       } finally {
         this.loading = false;
       }

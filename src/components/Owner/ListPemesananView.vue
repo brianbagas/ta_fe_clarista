@@ -51,7 +51,7 @@ const search = ref('');
 const loading = ref(true);
 const pemesanans = ref([]);
 const headers = [
-  { title: 'Kode Booking', key: 'id' },
+  { title: 'Kode Booking', key: 'kode_booking' },
   { title: 'Nama Tamu', key: 'user.name' },
   { title: 'Check-in', key: 'tanggal_check_in' },
   { title: 'Check-out', key: 'tanggal_check_out' },
@@ -63,7 +63,9 @@ const headers = [
 const fetchPemesanan = async () => {
   try {
     const response = await apiClient.get('/admin/pemesanan');
-    pemesanans.value = response.data;
+    if (response.success) {
+      pemesanans.value = response.data;
+    }
   } catch (err) {
     console.error('Gagal memuat data pemesanan:', err);
     // Tampilkan notifikasi error ke owner
@@ -82,7 +84,7 @@ const getStatusColor = (status) => {
 const viewDetails = (item) => {
   console.log('Lihat detail:', item.id);
   // Navigasi ke halaman detail pesanan
-  router.push({ name: 'detail-pesanan-owner', params: { id: item.id } });
+  router.push({ name: 'DetailPesananOwner', params: { id: item.id } });
 };
 
 const editItem = (item) => {

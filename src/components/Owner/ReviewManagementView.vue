@@ -182,8 +182,10 @@ const fetchReviews = async () => {
         sort_order: sortBy[0]?.order,
       }
     });
-    reviews.value = response.data;
-    totalItems.value = response.data.total;
+    if (response.success) {
+      reviews.value = response.data;
+      totalItems.value = response.data.total || response.data.length;
+    }
   } catch (error) {
     console.error("Gagal mengambil data review:", error);
   } finally {
@@ -193,15 +195,18 @@ const fetchReviews = async () => {
 
 const save = async () => {
   try {
+    let response;
     if (editedIndex.value > -1) {
       // Update
-      await apiClient.put(`admin/review/${editedItem.value.id}`, editedItem.value);
+      response = await apiClient.put(`admin/review/${editedItem.value.id}`, editedItem.value);
     } else {
       // Create (Manual)
-      await apiClient.post('admin/review', editedItem.value);
+      response = await apiClient.post('admin/review', editedItem.value);
     }
-    close();
-    fetchReviews(); // Refresh data
+    if (response.success) {
+      close();
+      fetchReviews(); // Refresh data
+    }
   } catch (error) {
     console.error("Gagal menyimpan review:", error);
   }
@@ -209,9 +214,11 @@ const save = async () => {
 
 const deleteItemConfirm = async () => {
   try {
-    await apiClient.delete(`admin/review/${editedItem.value.id}`);
-    closeDelete();
-    fetchReviews(); // Refresh data
+    const response = await apiClient.delete(`admin/review/${editedItem.value.id}`);
+    if (response.success) {
+      closeDelete();
+      fetchReviews(); // Refresh data
+    }
   } catch (error) {
     console.error("Gagal menghapus review:", error);
   }

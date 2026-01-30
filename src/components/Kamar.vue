@@ -32,14 +32,14 @@
     <v-row v-else justify="center">
       <v-col
         v-for="room in rooms"
-        :key="room.id"
+        :key="room.id_kamar"
         cols="12"
         md="6"
         lg="5"
       >
         <v-card elevation="4" class="rounded-lg h-100 d-flex flex-column hover-card">
           <v-img
-            :src="room.gambar || 'https://images.unsplash.com/photo-1631049307264-da0ec9d70304?q=80&w=1000&auto=format&fit=crop'"
+            :src="room.thumbnail || 'https://images.unsplash.com/photo-1631049307264-da0ec9d70304?q=80&w=1000&auto=format&fit=crop'"
             height="250"
             cover
             class="align-end"
@@ -95,8 +95,23 @@
 
     <v-dialog v-model="dialog" max-width="600" scrollable>
       <v-card v-if="selectedRoom">
+        <v-carousel
+          v-if="selectedRoom.images && selectedRoom.images.length > 0"
+          height="300"
+          hide-delimiter-background
+          show-arrows="hover"
+        >
+          <v-carousel-item
+            v-for="(image, i) in selectedRoom.images"
+            :key="i"
+            :src="image.url"
+            cover
+          ></v-carousel-item>
+        </v-carousel>
+
         <v-img
-          :src="selectedRoom.gambar || 'https://images.unsplash.com/photo-1631049307264-da0ec9d70304?q=80&w=1000&auto=format&fit=crop'"
+          v-else
+          :src="selectedRoom.thumbnail || 'https://images.unsplash.com/photo-1631049307264-da0ec9d70304?q=80&w=1000&auto=format&fit=crop'"
           height="300"
           cover
         ></v-img>
@@ -173,13 +188,28 @@ export default {
     async fetchRooms() {
       try {
         const response = await apiClient.get('/kamar');
-        // Pastikan mengambil data yang benar sesuai struktur API Laravel Resource
-        this.rooms = response.data.data ? response.data.data : response.data;
+        if (response.success) {
+          this.rooms = response.data;
+        } else {
+          this.error = response.message || "Gagal memuat data kamar. Silakan coba lagi.";
+        }
       } catch (err) {
-        this.error = "Gagal memuat data kamar. Silakan coba lagi.";
+        this.error = err.response?.data?.message || "Gagal memuat data kamar. Silakan coba lagi.";
         console.error(err);
       } finally {
         this.loading = false;
+        // Cek query param setelah data diload
+        this.checkInitialQuery();
+      }
+    },
+    checkInitialQuery() {
+      const openId = this.$route.query.open;
+      if (openId) {
+        // Cari room dengan ID tersebut
+        const targetRoom = this.rooms.find(r => r.id_kamar == openId);
+        if (targetRoom) {
+          this.openDetail(targetRoom);
+        }
       }
     },
     formatPrice(value) {
@@ -205,7 +235,7 @@ export default {
       // Sesuaikan query param agar halaman booking otomatis memilih kamar ini
       this.$router.push({ 
         path: '/booking', 
-        query: { room_id: this.selectedRoom.id } 
+        query: { room_id: this.selectedRoom.id_kamar } 
       });
     }
   },

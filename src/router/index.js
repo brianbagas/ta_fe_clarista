@@ -4,10 +4,10 @@ import RoomListPublic from '../components/Kamar.vue';
 import LoginView from '../components/LoginView.vue';
 import RegisterView from '../components/RegisterView.vue'; // Updated filename
 import PromoView from '../components/PromoView.vue'; // Updated filename
-import KelolaKamarView from '../components/KelolaKamarView.vue'; // Updated filename
+import KelolaKamarView from '../components/Owner/KelolaKamarView.vue'; // Updated filename
 import KelolaHomestayView from '../components/KelolaHomestayView.vue'; // Updated filename
 import ProfileCustomerView from '../components/Customer/ProfileCustomerView.vue';
-import RiwayatPemesananView from '../components/Owner/RiwayatPemesananView.vue'; // Updated filename
+import RiwayatPemesananView from '../components/Customer/RiwayatPemesananView.vue'; // Updated filename
 import DetailPemesananView from '../components/Customer/DetailPemesananView.vue';
 import DetailPemesananOwnerView from '../components/Owner/DetailPemesananOwnerView.vue';
 import ListPemesananView from '../components/Owner/ListPemesananView.vue';
@@ -44,11 +44,13 @@ const routes = [
     name: 'Register',
     component: RegisterView,
   },
+  /* 
   {
     path: '/kamar',
     name: 'Kamar',
     component: RoomListPublic,
   },
+  */
   {
     path: '/promo',
     name: 'Promo',

@@ -203,8 +203,9 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, onUnmounted } from 'vue';
 import axios from '../../axios'; // Sesuaikan path import axios-mu
+import {defineStore} from 'pinia';
 
 // State Data
 const loading = ref(true);
@@ -218,6 +219,9 @@ const stats = ref({
   activeRooms: 0,
   pesananBatal: 0
 });
+
+// Polling State
+const pollingInterval = ref(null);
 
 // Konfigurasi Header Tabel
 const headers = [
@@ -237,12 +241,30 @@ const formatRupiah = (value) => {
 // Fungsi Warna Status
 const getStatusColor = (status_pemesanan) => {
   switch (status_pemesanan) {
-    case 'lunas': return 'success';
-    case 'menunggu_verifikasi': return 'warning';
+    case 'diferifikasi': return 'success';
+    case 'menunggu_konfirmasi': return 'warning'; // Update status string match
+    case 'menunggu_verifikasi': return 'warning'; // Handle legacy/potential mismatch
     case 'menunggu_pembayaran': return 'info';
     case 'dibatalkan': return 'error';
     default: return 'grey';
   }
+};
+
+// Fungsi Polling Khusus Notifikasi Pembayaran
+const fetchNotificationCount = async () => {
+    try {
+        const response = await axios.get('/admin/pembayaran-notifikasi', {
+            headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+        });
+        
+        if (response.success) {
+            // Update jumlah pendingCount dari endpoint khusus ini
+            // Ini akan memastikan data realtime (via polling)
+            stats.value.pendingCount = response.data;
+        }
+    } catch (error) {
+        console.error("Gagal polling notifikasi", error);
+    }
 };
 
 // LOGIKA UTAMA: Ambil data dari API yang sudah ada dan hitung manual di Frontend
@@ -250,41 +272,64 @@ const fetchDashboardData = async () => {
   try {
     loading.value = true;
     
-    // 1. Panggil API Pesanan (Pastikan endpoint ini mengembalikan semua pesanan)
+    // 1. Panggil API Pesanan
     const response = await axios.get('/admin/pemesanan', {
       headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
     });
 
-    const allData = response.data.data || response.data; // Sesuaikan struktur response Laravelmu
+    if (response.success) {
+      const allData = response.data;
+      
+      // Simpan untuk tabel (ambil 5 teratas)
+      recentBookings.value = allData.slice(0, 5);
+
+      // 2. HITUNG STATISTIK CLIENT-SIDE
+      const now = new Date();
+      const currentMonth = now.getMonth();
+      const currentYear = now.getFullYear();
+
+      // Hitung TOTAL BOOKING (Semua yang tidak batal)
+      const validBookings = allData.filter(item => item.status_pemesanan !== 'batal');
+      stats.value.totalBookings = validBookings.length;
+
+      // Note: pendingCount akan di-cover oleh polling, tapi kita bisa set initial value disini juga
+      // atau biarkan fetchNotificationCount yang menangani
+      // const pendingVerif = allData.filter(item => item.status_pemesanan === 'menunggu_konfirmasi');
+      // stats.value.pendingCount = pendingVerif.length;
+
+      // Hitung Pesanan BARU (Belum Bayar)
+      const pendingBayar = allData.filter(item => item.status_pemesanan === 'menunggu_pembayaran');
+      stats.value.newCount = pendingBayar.length;
+
+      // Hitung Pesanan LUNAS (Total Lunas Sepanjang Waktu untuk Chart)
+      const lunas = allData.filter(item => item.status_pemesanan === 'dikonfimrasi' || item.status_pemesanan === 'selesai');
+      stats.value.lunasCount = lunas.length;
+
+      // Hitung TOTAL PENDAPATAN (Hanya Lunas/Selesai di BULAN INI)
+      const incomeThisMonth = lunas.filter(item => {
+          const checkIn = new Date(item.tanggal_check_in);
+          return checkIn.getMonth() === currentMonth && checkIn.getFullYear() === currentYear;
+      });
+
+      stats.value.incomeMonth = incomeThisMonth.reduce((acc, curr) => acc + parseInt(curr.total_bayar), 0);
+      
+// stats.value.activeRooms = Math.floor(Math.random() * 5); // Dummy removed
+    }
     
-    // Simpan untuk tabel (ambil 5 teratas)
-    recentBookings.value = allData.slice(0, 5);
+    // Panggil notifikasi count juga saat load awal agar sinkron
+    await fetchNotificationCount();
 
-    // 2. HITUNG STATISTIK SECARA MANUAL (JAVASCRIPT FILTER)
-    // Ini trik supaya tidak perlu buat API Dashboard khusus di Laravel
-    
-    // Hitung Total Booking
-    stats.value.totalBookings = allData.length;
-
-    // Hitung Pesanan yang PERLU VERIFIKASI
-    const pendingVerif = allData.filter(item => item.status_pemesanan === 'menunggu_verifikasi');
-    stats.value.pendingCount = pendingVerif.length;
-
-    // Hitung Pesanan BARU (Belum Bayar)
-    const pendingBayar = allData.filter(item => item.status_pemesanan === 'menunggu_pembayaran');
-    stats.value.newCount = pendingBayar.length;
-
-    // Hitung Pesanan LUNAS
-    const lunas = allData.filter(item => item.status_pemesanan === 'lunas' || item.status_pemesanan === 'selesai');
-    stats.value.lunasCount = lunas.length;
-
-    // Hitung TOTAL PENDAPATAN (Hanya dari yang status lunas/selesai)
-    // Menggunakan reduce untuk menjumlahkan total_harga
-    stats.value.incomeMonth = lunas.reduce((acc, curr) => acc + parseInt(curr.total_bayar), 0);
-
-    // Hitung Kamar Terisi (Asumsi logika sederhana: Yang lunas dan hari ini masuk tanggal menginap)
-    // Ini opsional, bisa di-hardcode jika susah logikanya
-    stats.value.activeRooms = Math.floor(Math.random() * 5); // Dummy data sementara
+    // 3. FETCH REALTIME DASHBOARD STATS (Active Rooms)
+    try {
+        const statsResponse = await axios.get('/admin/dashboard-stats', {
+           headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+        });
+        if(statsResponse.success) {
+           stats.value.activeRooms = statsResponse.data.active_rooms;
+        }
+    } catch (e) {
+        console.error("Gagal load stats dashboard", e);
+    }
 
   } catch (error) {
     console.error("Gagal ambil data dashboard", error);
@@ -293,7 +338,20 @@ const fetchDashboardData = async () => {
   }
 };
 
+
 onMounted(() => {
   fetchDashboardData();
+  
+  // Setup Polling setiap 10 detik (10000ms)
+  pollingInterval.value = setInterval(() => {
+      fetchNotificationCount();
+  }, 10000);
+});
+
+onUnmounted(() => {
+    // Bersihkan interval saat komponen di-destroy
+    if (pollingInterval.value) {
+        clearInterval(pollingInterval.value);
+    }
 });
 </script>

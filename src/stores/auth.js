@@ -41,21 +41,27 @@ function setAuthHeader(token) {
 export async function login(credentials) {
   try {
     const response = await apiClient.post('/login', credentials);
-    const newToken = response.data.access_token;
-    const role = response.data.role;
 
-    // Simpan token ke local storage dan state
-    localStorage.setItem('token', newToken);
-    state.token = newToken;
+    // After interceptor, response is already { success, message, data }
+    if (response.success) {
+      const newToken = response.data.access_token;
+      const role = response.data.role;
 
-    await fetchUser(); // Ambil data user
-    console.log('Login successful:', role);
-    if (role === 'owner') {
-      router.push('/owner'); // Redirect ke dashboard owner
+      // Simpan token ke local storage dan state
+      localStorage.setItem('token', newToken);
+      state.token = newToken;
+
+      await fetchUser(); // Ambil data user
+      console.log('Login successful:', role);
+
+      if (role === 'owner') {
+        router.push('/owner'); // Redirect ke dashboard owner
+      } else {
+        router.push('/'); // Redirect ke halaman utama
+      }
     } else {
-      router.push('/'); // Redirect ke halaman utama
+      throw new Error(response.message || 'Login failed');
     }
-
   } catch (error) {
     console.error('Login failed:', error);
     throw error; // Lempar error agar komponen bisa menanganinya
@@ -69,31 +75,36 @@ export async function register(details) {
   try {
     const response = await apiClient.post('/register', details);
 
-    // Skenario 1: Backend langsung mengembalikan token setelah register (Auto Login)
-    if (response.data.access_token) {
-      const newToken = response.data.access_token;
+    // After interceptor, response is already { success, message, data }
+    if (response.success) {
+      // Skenario 1: Backend langsung mengembalikan token setelah register (Auto Login)
+      if (response.data.access_token) {
+        const newToken = response.data.access_token;
 
-      localStorage.setItem('token', newToken);
-      state.token = newToken;
-      setAuthHeader(newToken);
+        localStorage.setItem('token', newToken);
+        state.token = newToken;
+        setAuthHeader(newToken);
 
-      await fetchUser(); // Ambil data user
+        await fetchUser(); // Ambil data user
 
-      // Redirect sesuai role
-      const role = state.user?.role;
-      if (role === 'owner') {
-        router.push('/owner');
-      } else {
-        router.push('/');
+        // Redirect sesuai role
+        const role = state.user?.role;
+        if (role === 'owner') {
+          router.push('/owner');
+        } else {
+          router.push('/');
+        }
       }
-    }
-    // Skenario 2: Backend hanya mengembalikan pesan sukses (harus login manual)
-    else {
-      // Arahkan ke halaman login
-      router.push('/login');
-    }
+      // Skenario 2: Backend hanya mengembalikan pesan sukses (harus login manual)
+      else {
+        // Arahkan ke halaman login
+        router.push('/login');
+      }
 
-    return response.data; // Kembalikan data agar komponen Vue bisa menampilkan alert sukses
+      return response.data; // Kembalikan data agar komponen Vue bisa menampilkan alert sukses
+    } else {
+      throw new Error(response.message || 'Registration failed');
+    }
   } catch (error) {
     console.error('Register failed:', error);
     throw error; // Lempar error ke komponen untuk ditampilkan (misal: email sudah ada)
@@ -103,11 +114,17 @@ export async function register(details) {
 // Fungsi untuk mengambil data user
 export async function fetchUser() {
   if (state.token) {
-    apiClient.defaults.headers.common['Authorization'] = `Bearer ${state.token}`;
     try {
       const response = await apiClient.get('/user');
-      localStorage.setItem('user', JSON.stringify(response.data));
-      state.user = response.data;
+
+      // After interceptor, response is already { success, message, data }
+      if (response.success) {
+        localStorage.setItem('user', JSON.stringify(response.data));
+        state.user = response.data;
+      } else {
+        // Jika response tidak success, logout
+        logout();
+      }
     } catch (error) {
       // Jika token tidak valid, logout
       logout();

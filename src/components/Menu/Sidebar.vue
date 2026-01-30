@@ -25,7 +25,8 @@
       <v-list-item prepend-icon="mdi-file-document-edit" title="Daftar Pesanan" to="/admin/pesanan"></v-list-item>
       <v-list-item prepend-icon="mdi-chart-bar" title="Laporan" to="/admin/laporan"></v-list-item>
       <v-list-item prepend-icon="mdi-cash-check" title="Verifikasi Pembayaran" to="/admin/verifikasi-pembayaran"></v-list-item>
-      <v-list-item prepend-icon="mdi-cash-check" title="Reivew" to="/admin/review"></v-list-item>
+      <v-list-item prepend-icon="mdi-cash-check" title="Review" to="/admin/review"></v-list-item>
+      <v-list-item prepend-icon="mdi-account-plus" title="Walk-in Guest" to="/admin/storeOffline"></v-list-item>
     </v-list>
   </v-navigation-drawer>
 </template>

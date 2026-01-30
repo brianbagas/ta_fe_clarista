@@ -93,14 +93,14 @@ const snackbar = ref({
 
 const fetchContent = async () => {
   loading.value = true;
-console.log(loading.value);
-console.log(content.value);
   try {
     const response = await apiClient.get('/content/homepage');
-    content.value = response.data;
+    if (response.success) {
+      content.value = response.data;
+    }
   } catch (err) {
     console.error(err);
-    snackbar.value = { show: true, text: 'Gagal memuat konten.', color: 'error' };
+    snackbar.value = { show: true, text: err.response?.data?.message || 'Gagal memuat konten.', color: 'error' };
   } finally {
     loading.value = false;
   }
@@ -127,16 +127,18 @@ const saveContent = async () => {
     }
 
     try {
-        await apiClient.post('/content/homepage/update', formData, {
+        const response = await apiClient.post('/content/homepage/update', formData, {
             headers: {
                 'Content-Type': 'multipart/form-data'
             }
         });
-        snackbar.value = { show: true, text: 'Konten berhasil diperbarui!', color: 'success' };
-        await fetchContent(); // Muat ulang konten
+        if (response.success) {
+            snackbar.value = { show: true, text: response.message || 'Konten berhasil diperbarui!', color: 'success' };
+            await fetchContent(); // Muat ulang konten
+        }
     } catch (err) {
         console.error(err);
-        snackbar.value = { show: true, text: 'Gagal memperbarui konten.', color: 'error' };
+        snackbar.value = { show: true, text: err.response?.data?.message || 'Gagal memperbarui konten.', color: 'error' };
     } finally {
         loading.value = false;
     }

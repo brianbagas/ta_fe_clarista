@@ -12,7 +12,7 @@
     
     <v-list density="compact" nav>
       <v-list-item prepend-icon="mdi-home" title="Home" to="/"></v-list-item>
-      <v-list-item prepend-icon="mdi-bed" title="Kamar" to="/kamar"></v-list-item>
+      <!-- <v-list-item prepend-icon="mdi-bed" title="Kamar" to="/kamar"></v-list-item> dihapus sementara -->
       <v-list-item prepend-icon="mdi-sale" title="Promo" to="/promo"></v-list-item>
       
       <v-divider class="my-2"></v-divider>
@@ -40,7 +40,7 @@
 
     <div class="d-none d-md-flex align-center">
       <v-btn variant="text" to="/">Home</v-btn>
-      <v-btn variant="text" to="/kamar">Kamar</v-btn>
+      <!-- <v-btn variant="text" to="/kamar">Kamar</v-btn> dihapus sementara -->
       <v-btn variant="text" to="/promo">Promo</v-btn>
       <v-btn variant="text" to="/booking">Booking</v-btn>
 

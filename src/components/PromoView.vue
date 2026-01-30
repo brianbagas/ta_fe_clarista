@@ -94,9 +94,13 @@ const snackbar = ref(false);
 const fetchPromos = async () => {
   try {
     const response = await apiClient.get('/promo');
-    promos.value = response.data.data ? response.data.data : response.data;
+    if (response.success) {
+      promos.value = response.data;
+    } else {
+      error.value = response.message || 'Gagal memuat data promo.';
+    }
   } catch (err) {
-    error.value = 'Gagal memuat data promo.';
+    error.value = err.response?.data?.message || 'Gagal memuat data promo.';
     console.error('Error fetching promos:', err);
   } finally {
     loading.value = false;

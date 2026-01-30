@@ -25,28 +25,43 @@
 
       <v-container class="booking-widget-container">
         <v-card elevation="10" class="rounded-xl pa-4 mt-n16 position-relative z-index-2">
-          <v-row align ="center" no-gutters>
-            <v-col cols="12" md="3" class="px-2">
+          <v-row align="center" no-gutters>
+            <v-col cols="12" md="4" class="px-2">
               <div class="text-caption font-weight-bold text-grey mb-1 ml-1">Check-in</div>
-              <v-text-field type="date" density="compact" variant="outlined" hide-details color="primary"></v-text-field>
+              <v-text-field 
+                v-model="checkInDate"
+                type="date" 
+                density="compact" 
+                variant="outlined" 
+                :min="minDate"  
+                hide-details 
+                color="primary"
+                bg-color="white"
+              ></v-text-field>
             </v-col>
-            <v-col cols="12" md="3" class="px-2 mt-3 mt-md-0">
+            <v-col cols="12" md="4" class="px-2 mt-3 mt-md-0">
               <div class="text-caption font-weight-bold text-grey mb-1 ml-1">Check-out</div>
-              <v-text-field type="date" density="compact" variant="outlined" hide-details color="primary"></v-text-field>
+              <v-text-field 
+                v-model="checkOutDate"
+                type="date" 
+                density="compact" 
+                variant="outlined" 
+                :min="minCheckOutDate" 
+                hide-details 
+                color="primary"
+                bg-color="white"
+              ></v-text-field>
             </v-col>
-            <v-col cols="12" md="3" class="px-2 mt-3 mt-md-0">
-               <div class="text-caption font-weight-bold text-grey mb-1 ml-1">Tamu</div>
-               <v-select 
-                  :items="['1 Orang', '2 Orang', '3 Orang', '4+ Orang']" 
-                  density="compact" 
-                  variant="outlined" 
-                  hide-details 
-                  prepend-inner-icon="mdi-account-group"
-                  color="primary"
-                ></v-select>
-            </v-col>
-            <v-col cols="12" md="3" class="px-2 mt-4 mt-md-0 d-flex align-end">
-              <v-btn block height="40" color="blue-darken-3" class="text-white text-capitalize rounded-lg">
+            <v-col cols="12" md="4" class="px-2 mt-4 mt-md-0 d-flex flex-column justify-end">
+              <div class="mb-1 d-none d-md-block">&nbsp;</div> <!-- Spacer to align with label height -->
+              <v-btn 
+                block 
+                height="40" 
+                color="blue-darken-3" 
+                class="text-white text-capitalize rounded-lg font-weight-bold"
+                elevation="2"
+                @click="goToBooking"
+              >
                 Cari Ketersediaan
               </v-btn>
             </v-col>
@@ -68,7 +83,7 @@
             
             <div class="position-relative overflow-hidden" style="height: 250px;">
               <v-img
-                :src="room.image"
+                :src="room.images[0].url"
                 cover
                 class="h-100 transition-swing"
                 style="transition: transform 0.5s;"
@@ -124,7 +139,7 @@
                 color="blue-darken-3" 
                 variant="flat" 
                 class="text-capitalize"
-                @click="viewDetails(room.id)"
+                @click="viewDetails(room)"
               >
               Detail
               </v-btn>
@@ -179,7 +194,7 @@
             elevation="4"
           >
             <div class="ticket-left bg-blue-darken-3 d-flex flex-column align-center justify-center pa-3 position-relative"
-                 :style="{ width: $vuetify.display.xs ? '90px' : '120px' }">
+                 :style="{ width: $vuetify.display.xs ? '100px' : '140px' }">
               
               <div class="punch-hole top"></div>
               <div class="punch-hole bottom"></div>
@@ -269,6 +284,90 @@
     </v-container>
 
   </div>
+
+    <!-- Dialog Detail Kamar (Dipindahkan dari Kamar.vue) -->
+    <v-dialog v-model="dialog" max-width="600" scrollable>
+      <v-card v-if="selectedRoom" class="position-relative">
+        <v-btn
+          icon="mdi-close"
+          variant="flat"
+          color="rgba(0,0,0,0.5)"
+          theme="dark"
+          size="small"
+          class="position-absolute"
+          style="top: 10px; right: 10px; z-index: 5;"
+          @click="dialog = false"
+        ></v-btn>
+
+        <v-carousel
+          v-if="selectedRoom.images && selectedRoom.images.length > 0"
+          height="300"
+          hide-delimiter-background
+          show-arrows="hover"
+        >
+          <v-carousel-item
+            v-for="(image, i) in selectedRoom.images"
+            :key="i"
+            :src="image.url"
+            cover
+          ></v-carousel-item>
+        </v-carousel>
+
+        <v-img
+          v-else
+          :src="selectedRoom.thumbnail || 'https://images.unsplash.com/photo-1631049307264-da0ec9d70304?q=80&w=1000&auto=format&fit=crop'"
+          height="300"
+          cover
+        ></v-img>
+        
+        <v-card-title class="text-h5 font-weight-bold mt-2">
+          {{ selectedRoom.tipe_kamar }}
+        </v-card-title>
+
+        <v-card-text style="max-height: 400px;">
+          <div class="text-h6 text-primary font-weight-bold mb-4">
+            Rp {{ formatPrice(selectedRoom.harga) }} / malam
+          </div>
+
+          <h3 class="text-subtitle-1 font-weight-bold mb-2">Deskripsi</h3>
+          <p class="text-body-2 text-grey-darken-2 mb-4">
+            Kamar tipe {{ selectedRoom.tipe_kamar }} menyediakan ruang yang luas dan nyaman. 
+            Sangat direkomendasikan untuk istirahat setelah perjalanan jauh.
+          </p>
+
+          <h3 class="text-subtitle-1 font-weight-bold mb-2">Fasilitas Lengkap</h3>
+          <v-list density="compact" class="bg-grey-lighten-4 rounded-lg">
+            <v-list-item 
+              v-for="(fasilitas, i) in parseFacilities(selectedRoom.fasilitas)" 
+              :key="i"
+              prepend-icon="mdi-check-circle"
+              class="text-body-2"
+            >
+              {{ fasilitas }}
+            </v-list-item>
+            <v-list-item v-if="parseFacilities(selectedRoom.fasilitas).length === 0">
+              WiFi, AC, Kamar Mandi Dalam, Air Panas
+            </v-list-item>
+          </v-list>
+        </v-card-text>
+
+        <v-divider></v-divider>
+
+        <v-card-actions class="pa-4">
+          <v-btn variant="text" @click="dialog = false">Tutup</v-btn>
+          <v-spacer></v-spacer>
+          <v-btn 
+            color="primary" 
+            variant="flat" 
+            prepend-icon="mdi-calendar-check"
+            @click="goToBookingFromDialog"
+          >
+            Pesan Sekarang
+          </v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
+
 </template>
 
 <script setup>
@@ -286,6 +385,44 @@ const latestPromos = ref([]);
 const promoLoading = ref(true);
 const promoError = ref('');
 const snackbar = ref(false);
+
+// State untuk Dialog Detail
+const dialog = ref(false);
+const selectedRoom = ref(null);
+
+// Search Widget Logic
+const checkInDate = ref('');
+const checkOutDate = ref('');
+
+const minDate = computed(() => {
+  const today = new Date();
+  return today.toISOString().split('T')[0];
+});
+
+const minCheckOutDate = computed(() => {
+  if (checkInDate.value) {
+    const date = new Date(checkInDate.value);
+    date.setDate(date.getDate() + 1);
+    return date.toISOString().split('T')[0];
+  }
+  const today = new Date();
+  today.setDate(today.getDate() + 1);
+  return today.toISOString().split('T')[0];
+});
+
+const goToBooking = () => {
+  if (!checkInDate.value || !checkOutDate.value) {
+      alert('Silakan pilih tanggal check-in dan check-out terlebih dahulu.');
+      return;
+  }
+  router.push({ 
+    name: 'Booking', 
+    query: { 
+      checkIn: checkInDate.value, 
+      checkOut: checkOutDate.value 
+    } 
+  });
+};
 // 1. Image Logic: Diperbaiki agar lebih robust
 const heroImageUrl = computed(() => {
   if (content.value.hero_image_path) {
@@ -297,42 +434,30 @@ const heroImageUrl = computed(() => {
   return 'https://images.unsplash.com/photo-1566073771259-6a8506099945?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80'; // Gambar Tropical Placeholder yang lebih bagus
 });
 
+// Helper Formatting & Parsing
+const formatPrice = (value) => {
+  return new Intl.NumberFormat('id-ID').format(value);
+};
+
+const parseFacilities = (facilitiesJson) => {
+  try {
+    if (Array.isArray(facilitiesJson)) return facilitiesJson;
+    return JSON.parse(facilitiesJson || '[]');
+  } catch (e) {
+    return [];
+  }
+};
+
 // 2. Data Kamar: Saya update dummy datanya agar sesuai dengan UI baru (Harga & Stok)
 // Nanti ini bisa diganti dengan fetch dari API /kamar
-const roomTypes = ref([
-  {
-    id: 1, 
-    title: 'Single Bed Room',
-    description: 'Kamar yang nyaman dan ringkas dengan pencahayaan alami, cocok untuk solo traveler yang mencari ketenangan.',
-    price: 350000,
-    jumlah_tersedia: 2, // Untuk trigger badge "Sisa 2 Unit"
-    capacity: 1,
-    image: 'http://127.0.0.1:8000/storage/images/kamars/dummy-8.jpg' // Sesuaikan path ini
-  },
-  {
-    id: 2, 
-    title: 'Double Bed Deluxe',
-    description: 'Ruangan yang lebih luas dengan fasilitas premium, ideal untuk pasangan. Dilengkapi balkon pribadi.',
-    price: 550000,
-    jumlah_tersedia: 5,
-    capacity: 2,
-    image: 'http://127.0.0.1:8000/storage/images/kamars/dummy-4.jpg' // Sesuaikan path ini
-  },
-  {
-    id: 3, 
-    title: 'Family Suite',
-    description: 'Kamar ekstra luas untuk keluarga kecil. Ruang tamu terpisah dan kamar mandi bathtub.',
-    price: 750000,
-    jumlah_tersedia: 0, // Bisa ditambah logic disable button
-    capacity: 4,
-    image: 'http://127.0.0.1:8000/storage/images/kamars/dummy-10.jpg' 
-  },
-]);
+
 
 const fetchContent = async () => {
   try {
     const response = await apiClient.get('/content/homepage');
-    content.value = response.data;
+    if (response.success) {
+      content.value = response.data;
+    }
   } catch (error) {
     console.error('Gagal memuat konten homepage:', error);
   } finally {
@@ -343,11 +468,13 @@ const fetchContent = async () => {
 // Helper untuk format diskon (Persen vs Rupiah)
 const formatDiscountValue = (promo) => {
   if (promo.tipe_diskon === 'persen') {
-    return `${promo.nilai_diskon}%`;
+    return `${parseFloat(promo.nilai_diskon)}%`;
   } else {
-    // Ubah 25000 jadi 25rb agar muat di kotak kecil
+    // Ubah 25000 jadi 25rb, max 1 desimal (25.5rb)
     const val = promo.nilai_diskon;
-    if (val >= 1000) return `${val / 1000}rb`;
+    if (val >= 1000) {
+        return `${parseFloat((val / 1000).toFixed(1))}rb`;
+    }
     return `${val}`;
   }
 };
@@ -361,11 +488,14 @@ const copyToClipboard = (code) => {
 const fetchLatestPromos = async () => {
   try {
     const response = await apiClient.get('/promo/latest');
-    // Adaptasi jika response dibungkus data atau array langsung
-    latestPromos.value = response.data.data ? response.data.data : response.data;
+    if (response.success) {
+      latestPromos.value = response.data;
+    } else {
+      promoError.value = response.message || 'Gagal memuat promo terbaru.';
+    }
   } catch (error) {
     console.error('Gagal memuat promo:', error);
-    promoError.value = 'Gagal memuat promo terbaru.';
+    promoError.value = error.response?.data?.message || 'Gagal memuat promo terbaru.';
   } finally {
     promoLoading.value = false;
   }
@@ -374,7 +504,9 @@ const fetchLatestPromos = async () => {
 const fetchLatestReviews = async () => {
   try {
     const response = await apiClient.get('/review/latest');
-    latestReviews.value = response.data;
+    if (response.success) {
+      latestReviews.value = response.data;
+    }
   } catch (error) {
     console.error('Gagal memuat review terbaru:', error);
   } finally {
@@ -385,12 +517,12 @@ const fetchLatestReviews = async () => {
 const fetchKamarData = async () => {
   try {
     const response = await apiClient.get('/kamar'); 
-    // Sesuaikan jika response dibungkus data atau tidak
-    roomTypes.value = Array.isArray(response.data.data) ? response.data.data : response.data.data;
-    kamars.value = response.data.data;
+    if (response.success) {
+      kamars.value = response.data;
+    }
   } catch (error) {
     console.error("Gagal mengambil data kamar:", error);
-  }finally {
+  } finally {
     loading.value = false;
   }
 };
@@ -402,8 +534,18 @@ onMounted(() => {
     fetchKamarData();
 });
 
-const viewDetails = (roomId) => {
-  router.push({ name: 'kamar', params: { id: roomId } }); // Asumsi route punya param id
+const viewDetails = (room) => {
+    // Tampilkan Dialog Lokal, bukan pindah halaman
+    selectedRoom.value = room;
+    dialog.value = true;
+};
+
+const goToBookingFromDialog = () => {
+    dialog.value = false;
+    router.push({ 
+        path: '/booking', 
+        query: { room_id: selectedRoom.value.id_kamar } 
+    });
 };
 </script>
 
@@ -490,6 +632,7 @@ const viewDetails = (roomId) => {
 .line-clamp-1 {
   display: -webkit-box;
   -webkit-line-clamp: 1;
+  line-clamp: 1;
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
@@ -508,6 +651,8 @@ const viewDetails = (roomId) => {
   display: -webkit-box;
 
   -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
   overflow: hidden;
 }
 

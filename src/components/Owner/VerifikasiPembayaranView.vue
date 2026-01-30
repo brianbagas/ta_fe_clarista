@@ -26,7 +26,7 @@
             <div class="d-flex justify-space-between align-start">
               <div>
                 <div class="text-overline text-primary">ID BOOKING</div>
-                <h2 class="text-h5 font-weight-bold mb-2">CL-JUL25-00{{ pesanan.id }}</h2>
+                <h2 class="text-h5 font-weight-bold mb-2">{{ pesanan.kode_booking }}</h2>
               </div>
               <v-chip size="small" color="warning" prepend-icon="mdi-clock-outline">Menunggu Verifikasi</v-chip>
             </div>
@@ -166,9 +166,13 @@ const fetchVerifikasiList = async () => {
   loading.value = true;
   try {
     const response = await apiClient.get('/admin/pembayaran/verifikasi');
-    pemesanans.value = response.data;
+    if (response.success) {
+      pemesanans.value = response.data;
+    } else {
+      error.value = response.message || 'Gagal memuat data verifikasi.';
+    }
   } catch (err) {
-    error.value = 'Gagal memuat data verifikasi.';
+    error.value = err.response?.data?.message || 'Gagal memuat data verifikasi.';
     console.error(err);
   } finally {
     loading.value = false;
@@ -198,19 +202,21 @@ const konfirmasiTolak = async () => {
 
 const prosesVerifikasi = async (id, status, alasan = '') => {
   try {
-    await apiClient.post(`/admin/pembayaran/verifikasi/${id}`, { 
+    const response = await apiClient.post(`/admin/pembayaran/verifikasi/${id}`, { 
       status, 
       catatan_admin: alasan // Mengirim alasan penolakan ke backend
     });
     
-    // Notifikasi sukses (bisa diganti dengan v-snackbar)
-    alert(status === 'dikonfirmasi' ? "Pembayaran berhasil dikonfirmasi!" : "Pembayaran telah ditolak.");
-    
-    // Hapus item dari list setelah diproses
-    pemesanans.value = pemesanans.value.filter(p => p.id !== id);
+    if (response.success) {
+      // Notifikasi sukses (bisa diganti dengan v-snackbar)
+      alert(response.message || (status === 'dikonfirmasi' ? "Pembayaran berhasil dikonfirmasi!" : "Pembayaran telah ditolak."));
+      
+      // Hapus item dari list setelah diproses
+      pemesanans.value = pemesanans.value.filter(p => p.id !== id);
+    }
   } catch (err) {
-    console.error('Gagal memproses verifikasi:', err);
-    alert('Gagal memproses verifikasi.');
+    alert(err.response?.data?.message || 'Gagal memproses verifikasi.');
+    console.error(err);
   }
 };
 

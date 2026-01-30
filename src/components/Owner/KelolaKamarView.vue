@@ -34,7 +34,7 @@
           >
             <v-img
               height="200px"
-              :src="kamar.gambar_url || 'https://placehold.co/600x400?text=No+Image'"
+              :src="kamar.thumbnail || 'https://placehold.co/600x400?text=No+Image'"
               cover
               class="align-end"
             >
@@ -65,15 +65,24 @@
 
             <v-divider></v-divider>
 
-            <v-card-actions class="pa-4">
+            <v-card-actions class="pa-4 flex-wrap gap-2">
+                 <v-btn
+                variant="outlined"
+                color="secondary"
+                class="flex-grow-1 mb-2"
+                prepend-icon="mdi-format-list-bulleted"
+                @click="openUnitDialog(kamar)"
+              >
+                List Unit
+              </v-btn>
               <v-btn
                 variant="tonal"
                 color="primary"
-                block
+                class="flex-grow-1 mb-2"
                 prepend-icon="mdi-pencil"
                 @click="openEditDialog(kamar)"
               >
-                Manage & Edit
+                Edit Info
               </v-btn>
             </v-card-actions>
           </v-card>
@@ -137,11 +146,33 @@
                 ></v-text-field>
               </v-col>
 
-               <v-col cols="12" md="6">
+              <v-col cols="12">
+                 <h4 class="text-subtitle-2 mb-2">Foto Saat Ini</h4>
+                 <div v-if="editedItem.images && editedItem.images.length > 0" class="d-flex flex-wrap gap-2">
+                    <div v-for="img in editedItem.images" :key="img.id" class="position-relative" style="width: 100px; height: 100px;">
+                        <v-img :src="img.url" cover class="rounded-lg border" height="100%"></v-img>
+                        <v-btn
+                          icon="mdi-close"
+                          size="x-small"
+                          color="error"
+                          variant="flat"
+                          class="position-absolute"
+                          style="top: -5px; right: -5px;"
+                          @click="deleteImage(img.id)"
+                        ></v-btn>
+                    </div>
+                 </div>
+                 <p v-else class="text-caption text-grey">Belum ada foto.</p>
+              </v-col>
+
+               <v-col cols="12">
                 <v-file-input
-                  label="Foto Kamar"
-                  v-model="editedItem.imageFile"
+                  label="Foto Kamar (Bisa pilih banyak)"
+                  multiple
+                  @change="onFileChange"
                   accept="image/*"
+                  chips
+                  show-size
                   prepend-inner-icon="mdi-camera"
                   variant="outlined"
                   hint="Kosongkan jika tidak ingin mengubah foto"
@@ -202,12 +233,19 @@
       </template>
     </v-snackbar>
 
+    <ManageKamarUnitsView 
+        v-model="unitDialog" 
+        :kamar="selectedKamarForUnits" 
+    />
+
   </v-container>
 </template>
 
 <script setup>
 import { ref, onMounted } from 'vue';
-import apiClient from '../axios';
+import apiClient from '../../axios';
+
+import ManageKamarUnitsView from './ManageKamarUnitsView.vue'; // Import component baru
 
 // State
 const kamars = ref([]);
@@ -220,6 +258,11 @@ const confirmDeleteDialog = ref(false);
 const isEditing = ref(false);
 const valid = ref(false);
 const form = ref(null);
+
+const unitDialog = ref(false);
+const selectedKamarForUnits = ref(null);
+const selectedImageFiles = ref([]); // State ARRAY buat banyak file
+const deletedImageIds = ref([]); // State ARRAY untuk ID gambar yang akan dihapus
 
 // Snackbar state
 const snackbar = ref({
@@ -258,9 +301,13 @@ const fetchKamars = async () => {
   loading.value = true;
   try {
     const response = await apiClient.get('/kamar');
-    kamars.value = response.data.data;
+    if (response.success) {
+      kamars.value = response.data;
+    } else {
+      error.value = response.message || 'Gagal memuat data kamar.';
+    }
   } catch (err) {
-    error.value = 'Gagal memuat data kamar.';
+    error.value = err.response?.data?.message || 'Gagal memuat data kamar.';
     console.error(err);
   } finally {
     loading.value = false;
@@ -280,10 +327,19 @@ const saveItem = async () => {
   formData.append('deskripsi', editedItem.value.deskripsi || '');
   formData.append('harga', editedItem.value.harga);
   
-  // Hanya append file jika user memilih gambar baru
-  if (editedItem.value.imageFile) {
-      // Pastikan backend menghandle 'gambar_kamar'
-      formData.append('gambar_kamar', editedItem.value.imageFile[0]); 
+  // Handle Multiple Files
+  if (selectedImageFiles.value.length > 0) {
+      // Loop dan append sebagai array (gambar_kamar[])
+      for (let i = 0; i < selectedImageFiles.value.length; i++) {
+        formData.append('gambar_kamar[]', selectedImageFiles.value[i]);
+      }
+  }
+
+  // Handle Deletion (Deferred)
+  if (deletedImageIds.value.length > 0) {
+      for (let i = 0; i < deletedImageIds.value.length; i++) {
+        formData.append('deleted_images[]', deletedImageIds.value[i]);
+      }
   }
 
   // Jika metode PUT di Laravel kadang bermasalah dengan FormData, gunakan trik _method
@@ -292,24 +348,24 @@ const saveItem = async () => {
   }
 
   try {
+    let response;
     if (isEditing.value) {
-      // Perhatikan URL dan payload (gunakan formData)
-      await apiClient.post(`/admin/kamar/${editedItem.value.id_kamar}`, formData, {
-          headers: { 'Content-Type': 'multipart/form-data' }
-      });
-      showNotification('Data kamar berhasil diperbarui');
+      response = await apiClient.post(`/admin/kamar/${editedItem.value.id_kamar}`, formData);
     } else {
       formData.append('jumlah_total', editedItem.value.jumlah_total);
-      await apiClient.post('/admin/kamar', formData, {
-          headers: { 'Content-Type': 'multipart/form-data' }
-      });
-      showNotification('Kamar baru beserta unitnya berhasil ditambahkan');
+      response = await apiClient.post('/admin/kamar', formData);
     }
-    closeDialog();
-    await fetchKamars();
+    
+    if (response.success) {
+      showNotification(response.message);
+      closeDialog();
+      await fetchKamars();
+    } else {
+      showNotification(response.message || 'Gagal menyimpan data.', 'error');
+    }
   } catch (err) {
     console.error('Gagal menyimpan:', err);
-    showNotification('Gagal menyimpan data. Cek koneksi atau input.', 'error');
+    showNotification(err.response?.data?.message || 'Gagal menyimpan data.', 'error');
   } finally {
     saving.value = false;
   }
@@ -318,31 +374,65 @@ const saveItem = async () => {
 const deleteItem = async () => {
   deleting.value = true;
   try {
-    await apiClient.delete(`/admin/kamar/${editedItem.value.id_kamar}`);
-    showNotification('Kamar berhasil dihapus');
-    confirmDeleteDialog.value = false;
-    closeDialog();
-    await fetchKamars();
+    const response = await apiClient.delete(`/admin/kamar/${editedItem.value.id_kamar}`);
+    if (response.success) {
+      showNotification(response.message);
+      confirmDeleteDialog.value = false;
+      closeDialog();
+      await fetchKamars();
+    } else {
+      showNotification(response.message || 'Gagal menghapus data.', 'error');
+    }
   } catch (err) {
     console.error('Gagal menghapus:', err);
-    showNotification('Gagal menghapus data.', 'error');
+    showNotification(err.response?.data?.message || 'Gagal menghapus data.', 'error');
   } finally {
     deleting.value = false;
+  }
+};
+
+const deleteImage = (imageId) => {
+    // Cuma tandai delete secara lokal, jangan panggil API dulu
+    if(!deletedImageIds.value.includes(imageId)) {
+        deletedImageIds.value.push(imageId);
+    }
+    // Sembunyikan dari UI
+    editedItem.value.images = editedItem.value.images.filter(img => img.id !== imageId);
+};
+
+const onFileChange = (event) => {
+  // Ambil FileList lalu convert ke Array jika perlu, atau simpan langsung
+  const files = event.target.files; 
+  if (files && files.length > 0) {
+    selectedImageFiles.value = files; 
   }
 };
 
 // Dialog Handlers
 const openAddDialog = () => {
   isEditing.value = false;
-  editedItem.value = { id_kamar: null, tipe_kamar: '', deskripsi: '', harga: 0, jumlah_total: 1, imageFile: null };
+  editedItem.value = { id_kamar: null, tipe_kamar: '', deskripsi: '', harga: 0, jumlah_total: 1 };
+  selectedImageFiles.value = []; // Reset array
+  deletedImageIds.value = []; // Reset delete list
   dialog.value = true;
 };
 
 const openEditDialog = (item) => {
   isEditing.value = true;
   // Clone item agar tidak merubah tampilan tabel secara langsung saat mengetik
-  editedItem.value = { ...item, imageFile: null }; 
+  editedItem.value = { ...item }; 
+  // IMPORTANT: Deep clone images if necessary, but handled by Vue reactivity mostly ok for filter
+  // But if we modify inside editedItem, we should accept that
+  if (!editedItem.value.images) editedItem.value.images = [];
+  
+  selectedImageFiles.value = []; // Reset array
+  deletedImageIds.value = []; // Reset delete list
   dialog.value = true;
+};
+
+const openUnitDialog = (item) => {
+    selectedKamarForUnits.value = item;
+    unitDialog.value = true;
 };
 
 const closeDialog = () => {
@@ -352,6 +442,10 @@ const closeDialog = () => {
 };
 
 onMounted(fetchKamars);
+</script>
+
+<script>
+// Separate script block for imports if needed, but setup script matches best
 </script>
 
 <style scoped>
