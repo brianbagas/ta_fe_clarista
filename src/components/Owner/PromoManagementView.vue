@@ -54,6 +54,14 @@
           </v-chip>
         </template>
 
+        <template v-slot:[`item.berlaku_mulai`]="{ item }">
+          {{ formatDate(item.berlaku_mulai) }}
+        </template>
+
+        <template v-slot:[`item.berlaku_selesai`]="{ item }">
+          {{ formatDate(item.berlaku_selesai) }}
+        </template>
+
         <template #[`item.actions`]="{ item }">
           <v-icon icon="mdi-pencil" size="large"  @click="openEditDialog(item)">
             mdi-pencil
@@ -197,8 +205,6 @@ const promos = ref([]);
 const editedIndex = ref(-1);
 const errorMessage = ref(''); 
 const isEditing = ref(false);
-// --- KONFIGURASI API UTAMA ---
-// Base URL sudah di apiClient, jadi hanya perlu path relatif
 const API_URL = 'admin/promo'; 
 
 const formatRupiah = (value) => {
@@ -229,6 +235,16 @@ const headers = [
     { title: 'Aksi', key: 'actions', sortable: false },
 ];
 
+const formatDate = (dateString) => {
+  if (!dateString) return '-';
+  const date = new Date(dateString);
+  return date.toLocaleDateString('id-ID', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+  });
+};
+
 const defaultItem = {
     id: null,
     nama_promo: '',
@@ -240,8 +256,8 @@ const defaultItem = {
     kuota: null,
     kuota_terpakai: 0,
     is_active: true,
-    berlaku_mulai: new Date().toISOString().substr(0, 10),
-    berlaku_selesai: new Date().toISOString().substr(0, 10),
+    berlaku_mulai: new Date().toISOString().substring(0, 10),
+    berlaku_selesai: new Date().toISOString().substring(0, 10),
 };
 const editedItem = reactive({ ...defaultItem });
 
@@ -304,8 +320,20 @@ const openAddDialog = () => {
 
 const openEditDialog = (item) => {
   isEditing.value = true;
-  editedIndex.value = promos.value.indexOf(item); // Keep track of index if needed
-  Object.assign(editedItem, item);
+  editedIndex.value = promos.value.indexOf(item); 
+  
+  // Create a copy of the item
+  const itemToEdit = { ...item };
+  
+  // Format dates to YYYY-MM-DD for input type="date"
+  if (itemToEdit.berlaku_mulai) {
+    itemToEdit.berlaku_mulai = new Date(itemToEdit.berlaku_mulai).toISOString().substring(0, 10);
+  }
+  if (itemToEdit.berlaku_selesai) {
+    itemToEdit.berlaku_selesai = new Date(itemToEdit.berlaku_selesai).toISOString().substring(0, 10);
+  }
+
+  Object.assign(editedItem, itemToEdit);
   dialog.value = true;
 };
 const openDeleteDialog = (item) => {

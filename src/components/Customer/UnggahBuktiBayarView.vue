@@ -251,7 +251,7 @@ const form = reactive({
     jumlah_bayar: '',
     bank_tujuan: '', 
     nama_pengirim: '',
-    tanggal_bayar: new Date().toISOString().substr(0, 10) // Default today
+    tanggal_bayar: new Date().toISOString().substring(0, 10) // Default today
 });
 
 const rules = {

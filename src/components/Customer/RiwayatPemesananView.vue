@@ -127,6 +127,16 @@
                     >
                       Batalkan
                     </v-btn>
+
+                    <v-btn
+                      v-if="pesanan.status_pemesanan === 'selesai' && !pesanan.review"
+                      :to="{ name: 'TulisReview', params: { id: pesanan.id } }"
+                      variant="outlined" 
+                      color="primary"
+                      prepend-icon="mdi-star"
+                    >
+                      Beri Ulasan
+                    </v-btn>
                   </div>
                 </v-col>
               </v-row>

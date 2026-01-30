@@ -246,7 +246,7 @@ const calculatedCheckOut = computed(() => {
     
     const date = new Date(form.value.check_in);
     date.setDate(date.getDate() + parseInt(form.value.durasi));
-    return date.toISOString().substr(0, 10);
+    return date.toISOString().substring(0, 10);
 });
 
 // Hitung total harga real-time

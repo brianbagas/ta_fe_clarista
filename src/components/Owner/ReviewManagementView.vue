@@ -2,7 +2,6 @@
   <v-container>
     <v-card>
       <v-card-title class="d-flex align-center pe-2">
-        <v-icon icon="mdi-star-cog"></v-icon> &nbsp;
         Manajemen Review Pelanggan
 
         <v-spacer></v-spacer>
@@ -26,25 +25,35 @@
         @update:options="options = $event"
       >
         <template v-slot:[`item.rating`]="{ value }">
-          <v-rating
-            :model-value="value"
-            color="amber"
-            density="compact"
-            size="small"
-            readonly
-          ></v-rating>
+          <div class="text-left">
+            <v-rating
+              :model-value="value"
+              color="amber"
+              density="compact"
+              size="small"
+              readonly
+            ></v-rating>
+          </div>
         </template>
 
         <template v-slot:[`item.komentar`]="{ value }">
-          <div class="text-truncate" style="max-width: 300px;">
+          <div class="text-truncate text-left" style="max-width: 300px;">
             {{ value }}
           </div>
         </template>
 
         <template v-slot:[`item.status`]="{ value }">
-          <v-chip :color="getStatusColor(value)" size="small">
-            {{ value }}
-          </v-chip>
+          <div class="text-left">
+            <v-chip :color="getStatusColor(value)" size="small">
+              {{ value }}
+            </v-chip>
+          </div>
+        </template>
+
+        <template v-slot:[`item.created_at`]="{ value }">
+          <div class="text-left">
+             {{ formatDate(value) }}
+          </div>
         </template>
 
         <template v-slot:[`item.actions`]="{ item }">
@@ -81,6 +90,7 @@
                   label="Komentar"
                   variant="outlined"
                   rows="3"
+                  readonly
                 ></v-textarea>
               </v-col>
               <v-col cols="12" sm="6">
@@ -89,12 +99,13 @@
                   v-model="editedItem.rating"
                   color="amber"
                   density="default"
+                  readonly
                 ></v-rating>
               </v-col>
               <v-col cols="12" sm="6">
                  <v-select
                     v-model="editedItem.status"
-                    :items="['disetujui', 'pending', 'ditolak']"
+                    :items="['setujui', 'sembunyikan']"
                     label="Status"
                     variant="outlined"
                   ></v-select>
@@ -161,12 +172,12 @@ const formTitle = computed(() => (editedIndex.value === -1 ? 'Tambah Review Baru
 
 // Headers untuk Data Table
 const headers = [
-  { title: 'User', key: 'user.name', sortable: false },
-  { title: 'Rating', key: 'rating' },
-  { title: 'Komentar', key: 'komentar', sortable: false },
-  { title: 'Status', key: 'status' },
-  { title: 'Tanggal', key: 'created_at' },
-  { title: 'Aksi', key: 'actions', sortable: false },
+  { title: 'User', key: 'pemesanan.user.name', sortable: false, align: 'start' },
+  { title: 'Rating', key: 'rating', align: 'start' },
+  { title: 'Komentar', key: 'komentar', sortable: false, align: 'start' },
+  { title: 'Status', key: 'status', align: 'start' },
+  { title: 'Tanggal', key: 'created_at', align: 'start' },
+  { title: 'Aksi', key: 'actions', sortable: false, align: 'start' },
 ];
 
 // CRUD Functions
@@ -233,7 +244,10 @@ const openNewDialog = () => {
 
 const editItem = (item) => {
   editedIndex.value = reviews.value.indexOf(item);
-  editedItem.value = { ...item, user_name: item.user?.name }; // Ambil nama user
+  editedItem.value = { 
+    ...item, 
+    user_name: item.pemesanan?.user?.name || 'Guest' 
+  }; 
   dialog.value = true;
 };
 
@@ -256,9 +270,19 @@ const closeDelete = () => {
 };
 
 // Helper function
+const formatDate = (dateString) => {
+  if (!dateString) return '-';
+  const date = new Date(dateString);
+  return date.toLocaleDateString('id-ID', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+  });
+};
+
 const getStatusColor = (status) => {
-  if (status === 'disetujui') return 'green';
-  if (status === 'ditolak') return 'red';
+  if (status === 'setujui') return 'green';
+  if (status === 'sembunyikan') return 'red';
   return 'orange';
 };
 

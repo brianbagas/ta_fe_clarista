@@ -4,21 +4,19 @@
 
     <v-row class="mb-4">
       <v-col cols="12" md="4">
-        <v-select
-          v-model="filter.bulan"
-          :items="listBulan"
-          item-title="nama"
-          item-value="id"
-          label="Pilih Bulan"
+        <v-text-field
+          v-model="filter.startDate"
+          label="Tanggal Mulai"
+          type="date"
           variant="outlined"
           dense
-        ></v-select>
+        ></v-text-field>
       </v-col>
       <v-col cols="12" md="4">
         <v-text-field
-          v-model="filter.tahun"
-          label="Tahun"
-          type="number"
+          v-model="filter.endDate"
+          label="Tanggal Selesai"
+          type="date"
           variant="outlined"
           dense
         ></v-text-field>
@@ -72,6 +70,10 @@
   <template v-slot:[`item.user.name`]="{ item }">
     {{ item.user ? item.user.name : 'User Tidak Ditemukan' }}
   </template>
+
+  <template v-slot:[`item.pembayaran.tanggal_bayar`]="{ item }">
+    {{ item.pembayaran ? new Date(item.pembayaran.tanggal_bayar).toLocaleDateString('id-ID') : '-' }}
+  </template>
 </v-data-table>
     </v-card>
   </v-container>
@@ -84,22 +86,15 @@ export default {
   data() {
     return {
       loading: false,
-      laporan: null, // Data dari API disimpan di sini
+      laporan: null,
       filter: {
-        bulan: new Date().getMonth() + 1, // Default bulan ini
-        tahun: new Date().getFullYear(),
+        startDate: new Date(new Date().getFullYear(), new Date().getMonth(), 2).toISOString().substring(0, 10), // Default Awal Bulan
+        endDate: new Date().toISOString().substring(0, 10), // Default Hari Ini
       },
-      listBulan: [
-        { id: 1, nama: 'Januari' }, { id: 2, nama: 'Februari' },
-        { id: 3, nama: 'Maret' }, { id: 4, nama: 'April' },
-        { id: 5, nama: 'Mei' }, { id: 6, nama: 'Juni' },
-        { id: 7, nama: 'Juli' }, { id: 8, nama: 'Agustus' },
-        { id: 9, nama: 'September' }, { id: 10, nama: 'Oktober' },
-        { id: 11, nama: 'November' }, { id: 12, nama: 'Desember' },
-      ],
       headers: [
-        { title: 'ID Booking', key: 'id' },
-        { title: 'Nama Tamu', key: 'user.name' }, 
+        { title: 'Kode Booking', key: 'kode_booking' },
+        { title: 'Nama Tamu', key: 'user.name' },
+        { title: 'Tanggal Bayar', key: 'pembayaran.tanggal_bayar' },
         { title: 'Check In', key: 'tanggal_check_in' },
         { title: 'Check Out', key: 'tanggal_check_out' },
         { title: 'Total Bayar', key: 'total_bayar' },
@@ -113,8 +108,8 @@ export default {
       try {
         const response = await apiClient.get('/laporan', {
           params: {
-            bulan: this.filter.bulan,
-            tahun: this.filter.tahun
+            start_date: this.filter.startDate,
+            end_date: this.filter.endDate
           }
         });
 
