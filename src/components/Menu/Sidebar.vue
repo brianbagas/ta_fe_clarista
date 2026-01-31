@@ -12,6 +12,7 @@
         prepend-avatar="https://cdn.vuetifyjs.com/images/john.jpg"
         :subtitle="auth.state.user?.email"
         :title="auth.state.user?.name"
+        to="/profile" 
       ></v-list-item>
     </v-list>
 
@@ -22,12 +23,20 @@
       <v-list-item prepend-icon="mdi-bed" title="Kelola Kamar" to="/admin/kamar"></v-list-item>
       <v-list-item prepend-icon="mdi-ticket-percent" title="Kelola Promo" to="/admin/promo"></v-list-item>
       <v-list-item prepend-icon="mdi-file-document-edit" title="Kelola Konten" to="/admin/konten"></v-list-item>
-      <v-list-item prepend-icon="mdi-file-document-edit" title="Daftar Pesanan" to="/admin/pesanan"></v-list-item>
+      <v-list-item prepend-icon="mdi-order-bool-ascending-variant" title="Daftar Pesanan" to="/admin/pesanan"></v-list-item>
       <v-list-item prepend-icon="mdi-chart-bar" title="Laporan" to="/admin/laporan"></v-list-item>
       <v-list-item prepend-icon="mdi-cash-check" title="Verifikasi Pembayaran" to="/admin/verifikasi-pembayaran"></v-list-item>
-      <v-list-item prepend-icon="mdi-cash-check" title="Review" to="/admin/review"></v-list-item>
+      <v-list-item prepend-icon="mdi-star" title="Review" to="/admin/review"></v-list-item>
       <v-list-item prepend-icon="mdi-account-plus" title="Walk-in Guest" to="/admin/storeOffline"></v-list-item>
     </v-list>
+
+    <template v-slot:append>
+        <div class="pa-2">
+            <v-btn block color="error" variant="text" prepend-icon="mdi-logout" @click="auth.logout">
+                Logout
+            </v-btn>
+        </div>
+    </template>
   </v-navigation-drawer>
 </template>
 

@@ -32,13 +32,12 @@
   </v-navigation-drawer>
 
   <v-app-bar app class="bg-blue-darken-4" elevation="2">
-    <v-app-bar-nav-icon v-if="isOwner" @click="toggleDrawer"></v-app-bar-nav-icon>
     
     <v-toolbar-title>Clarista Homestay</v-toolbar-title>
     
     <v-spacer></v-spacer>
 
-    <div class="d-none d-md-flex align-center">
+    <div class="d-none d-md-flex align-center" v-if="!isOwner">
       <v-btn variant="text" to="/">Home</v-btn>
       <!-- <v-btn variant="text" to="/kamar">Kamar</v-btn> dihapus sementara -->
       <v-btn variant="text" to="/promo">Promo</v-btn>
@@ -67,10 +66,6 @@
     </div>
 
     <v-app-bar-nav-icon class="d-md-none" @click="drawer = !drawer"></v-app-bar-nav-icon>
-
-    <div v-if="isOwner" class="ml-4">
-      <v-btn @click="auth.logout" icon="mdi-logout" variant="text"></v-btn>
-    </div>
   </v-app-bar>
 </template>
 <script setup>

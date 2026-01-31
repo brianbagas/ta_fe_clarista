@@ -8,7 +8,7 @@ const apiClient = axios.create({
   withCredentials: true,
   headers: {
     'Accept': 'application/json',
-    'Content-Type': 'application/json'
+    // 'Content-Type': 'application/json' // Jangan hardcode ini agar FormData bisa jalan
   }
 });
 

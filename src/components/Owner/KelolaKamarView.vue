@@ -33,8 +33,9 @@
             class="h-100 rounded-lg transition-swing d-flex flex-column"
           >
             <v-img
+              v-if="kamar.thumbnail && kamar.thumbnail !== 'null'"
               height="200px"
-              :src="kamar.thumbnail || 'https://placehold.co/600x400?text=No+Image'"
+              :src="kamar.thumbnail"
               cover
               class="align-end"
             >
@@ -43,7 +44,22 @@
                   <v-progress-circular indeterminate color="grey-lighten-4"></v-progress-circular>
                 </div>
               </template>
+              <template v-slot:error>
+                <div class="d-flex align-center justify-center fill-height bg-grey-lighten-3 flex-column">
+                  <v-icon size="48" color="grey-lighten-1">mdi-image-off</v-icon>
+                  <div class="text-caption text-grey mt-2">No Image</div>
+                </div>
+              </template>
             </v-img>
+            <v-sheet
+              v-else
+              height="200px"
+              color="grey-lighten-3"
+              class="d-flex align-center justify-center flex-column"
+            >
+              <v-icon size="48" color="grey-lighten-1">mdi-image-off</v-icon>
+              <div class="text-caption text-grey mt-2">No Image Available</div>
+            </v-sheet>
 
             <v-card-item>
               <div class="d-flex justify-space-between align-start">
@@ -350,10 +366,14 @@ const saveItem = async () => {
   try {
     let response;
     if (isEditing.value) {
-      response = await apiClient.post(`/admin/kamar/${editedItem.value.id_kamar}`, formData);
+      response = await apiClient.post(`/admin/kamar/${editedItem.value.id_kamar}`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
     } else {
       formData.append('jumlah_total', editedItem.value.jumlah_total);
-      response = await apiClient.post('/admin/kamar', formData);
+      response = await apiClient.post('/admin/kamar', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
     }
     
     if (response.success) {

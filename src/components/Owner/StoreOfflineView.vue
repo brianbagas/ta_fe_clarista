@@ -71,7 +71,7 @@
                     >
                         <v-img
                             v-if="room.images && room.images.length > 0"
-                            :src="room.images[0].url || '/placeholder.jpg'" 
+                            :src="room.images[0]?.url || 'https://images.unsplash.com/photo-1631049307264-da0ec9d70304?q=80&w=1000&auto=format&fit=crop'" 
                             height="150"
                             cover
                         ></v-img>

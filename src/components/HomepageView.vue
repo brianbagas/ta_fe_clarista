@@ -83,7 +83,7 @@
             
             <div class="position-relative overflow-hidden" style="height: 250px;">
               <v-img
-                :src="room.images[0].url"
+                :src="room.images && room.images.length > 0 ? room.images[0].url : 'https://images.unsplash.com/photo-1631049307264-da0ec9d70304?q=80&w=1000&auto=format&fit=crop'"
                 cover
                 class="h-100 transition-swing"
                 style="transition: transform 0.5s;"
@@ -315,7 +315,7 @@
 
         <v-img
           v-else
-          :src="selectedRoom.thumbnail || 'https://images.unsplash.com/photo-1631049307264-da0ec9d70304?q=80&w=1000&auto=format&fit=crop'"
+          src="https://images.unsplash.com/photo-1631049307264-da0ec9d70304?q=80&w=1000&auto=format&fit=crop"
           height="300"
           cover
         ></v-img>
@@ -429,7 +429,7 @@ const heroImageUrl = computed(() => {
     // Pastikan path bersih dari 'public/' jika API mengembalikannya
     const cleanPath = content.value.hero_image_path.replace('public/', '').replace(/^\//, '');
     // Gunakan URL storage Laravel standar
-    return `http://127.0.0.1:8000/storage/${cleanPath}`;
+    return `http://api.claristahomestay.web.id/storage/${cleanPath}`;
   }
   return 'https://images.unsplash.com/photo-1566073771259-6a8506099945?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80'; // Gambar Tropical Placeholder yang lebih bagus
 });

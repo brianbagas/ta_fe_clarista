@@ -119,7 +119,7 @@
                     </v-btn>
                     
                     <v-btn 
-                      v-if="['menunggu_pembayaran', 'menunggu_konfirmasi'].includes(pesanan.status_pemesanan)"
+                      v-if="pesanan.status_pemesanan === 'menunggu_pembayaran'"
                       @click="openCancelDialog(pesanan)"
                       variant="outlined" 
                       color="error"

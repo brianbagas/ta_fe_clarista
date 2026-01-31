@@ -70,13 +70,33 @@
                   <v-card variant="outlined" class="rounded-lg overflow-hidden border-opacity-50">
                     <v-row no-gutters>
                       <v-col cols="12" sm="4">
-                        <v-img :src="kamar.thumbnail || '/placeholder-room.jpg'" height="100%" cover class="bg-grey-lighten-2">
+                        <v-img 
+                          v-if="kamar.thumbnail && kamar.thumbnail !== 'null'" 
+                          :src="kamar.thumbnail" 
+                          height="100%" 
+                          cover 
+                          class="bg-grey-lighten-2"
+                        >
                           <template v-slot:placeholder>
                             <v-row class="fill-height ma-0" align="center" justify="center">
                               <v-progress-circular indeterminate color="grey-lighten-5"></v-progress-circular>
                             </v-row>
                           </template>
+                          <template v-slot:error>
+                            <div class="d-flex align-center justify-center fill-height bg-grey-lighten-3 w-100 flex-column">
+                              <v-icon size="40" color="grey-lighten-1">mdi-image-off</v-icon>
+                            </div>
+                          </template>
                         </v-img>
+                        
+                        <v-sheet
+                          v-else
+                          height="100%"
+                          color="grey-lighten-3"
+                          class="d-flex align-center justify-center flex-column"
+                        >
+                           <v-icon size="40" color="grey-lighten-1">mdi-image-off</v-icon>
+                        </v-sheet>
                       </v-col>
 
                       <v-col cols="12" sm="5" class="pa-4">

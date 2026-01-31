@@ -291,12 +291,6 @@ const fetchDashboardData = async () => {
       // Hitung TOTAL BOOKING (Semua yang tidak batal)
       const validBookings = allData.filter(item => item.status_pemesanan !== 'batal');
       stats.value.totalBookings = validBookings.length;
-
-      // Note: pendingCount akan di-cover oleh polling, tapi kita bisa set initial value disini juga
-      // atau biarkan fetchNotificationCount yang menangani
-      // const pendingVerif = allData.filter(item => item.status_pemesanan === 'menunggu_konfirmasi');
-      // stats.value.pendingCount = pendingVerif.length;
-
       // Hitung Pesanan BARU (Belum Bayar)
       const pendingBayar = allData.filter(item => item.status_pemesanan === 'menunggu_pembayaran');
       stats.value.newCount = pendingBayar.length;

@@ -39,15 +39,41 @@
       >
         <v-card elevation="4" class="rounded-lg h-100 d-flex flex-column hover-card">
           <v-img
-            :src="room.thumbnail || 'https://images.unsplash.com/photo-1631049307264-da0ec9d70304?q=80&w=1000&auto=format&fit=crop'"
+            v-if="room.thumbnail && room.thumbnail !== 'null'"
+            :src="room.thumbnail"
             height="250"
             cover
             class="align-end"
           >
+            <template v-slot:placeholder>
+              <div class="d-flex align-center justify-center fill-height">
+                <v-progress-circular indeterminate color="grey-lighten-4"></v-progress-circular>
+              </div>
+            </template>
+            <template v-slot:error>
+               <div class="d-flex align-center justify-center fill-height bg-grey-lighten-3 w-100 flex-column">
+                  <v-icon size="48" color="grey-lighten-1">mdi-image-off</v-icon>
+                  <div class="text-caption text-grey mt-2">Gambar tidak tersedia</div>
+               </div>
+            </template>
             <v-card-title class="text-white bg-black-transparent font-weight-bold">
               {{ room.tipe_kamar }}
             </v-card-title>
           </v-img>
+          
+          <v-sheet
+            v-else
+            height="250"
+            color="grey-lighten-3"
+            class="d-flex align-end justify-start position-relative"
+          >
+             <div class="d-flex align-center justify-center w-100 h-100 position-absolute" style="z-index: 0;">
+                <v-icon size="64" color="grey-lighten-2">mdi-image-off</v-icon>
+             </div>
+             <v-card-title class="text-white bg-black-transparent font-weight-bold w-100 position-relative" style="z-index: 1;">
+              {{ room.tipe_kamar }}
+            </v-card-title>
+          </v-sheet>
 
           <v-card-text class="pt-4 flex-grow-1">
             <div class="d-flex align-center mb-3">
