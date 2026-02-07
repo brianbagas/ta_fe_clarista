@@ -21,9 +21,21 @@
           dense
         ></v-text-field>
       </v-col>
-      <v-col cols="12" md="4">
+      <v-col cols="12" md="2">
         <v-btn color="primary" height="56" block @click="fetchLaporan">
           Tampilkan Laporan
+        </v-btn>
+      </v-col>
+      <v-col cols="12" md="2">
+        <v-btn 
+          color="success" 
+          height="56" 
+          block 
+          @click="exportPdf"
+          :loading="loadingPdf"
+          prepend-icon="mdi-file-pdf-box"
+        >
+          Export PDF
         </v-btn>
       </v-col>
     </v-row>
@@ -64,7 +76,7 @@
   </template>
   
   <template v-slot:[`item.status_pemesanan`]="{ item }">
-    <v-chip color="green" small>{{ item.status_pemesanan }}</v-chip>
+    <v-chip :color="getStatusColor(item.status_pemesanan)" small>{{ formatStatusLabel(item.status_pemesanan) }}</v-chip>
   </template>
 
   <template v-slot:[`item.user.name`]="{ item }">
@@ -86,6 +98,7 @@ export default {
   data() {
     return {
       loading: false,
+      loadingPdf: false,
       laporan: null,
       filter: {
         startDate: new Date(new Date().getFullYear(), new Date().getMonth(), 2).toISOString().substring(0, 10), // Default Awal Bulan
@@ -125,6 +138,101 @@ export default {
       } finally {
         this.loading = false;
       }
+    },
+    async exportPdf() {
+      this.loadingPdf = true;
+      try {
+        console.log('Starting PDF export...', {
+          start_date: this.filter.startDate,
+          end_date: this.filter.endDate,
+          timestamp: new Date().toISOString()
+        });
+
+        const response = await apiClient.get('/laporan/export-pdf', {
+          params: {
+            start_date: this.filter.startDate,
+            end_date: this.filter.endDate
+          },
+          responseType: 'blob',
+          timeout: 120000 // 2 minutes timeout for large PDFs
+        });
+
+        console.log('PDF Response received:', {
+          size: response.size,
+          type: response.type,
+          timestamp: new Date().toISOString()
+        });
+
+        // Verify it's actually a PDF
+        if (response.type !== 'application/pdf') {
+          console.warn('Response type is not PDF:', response.type);
+        }
+
+        // Create blob link to download - bypass IDM by using direct blob URL
+        const url = window.URL.createObjectURL(response);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `laporan-pendapatan-${this.filter.startDate}.pdf`;
+        
+        // Add to DOM temporarily (needed for Firefox)
+        document.body.appendChild(link);
+        
+        // Trigger click
+        link.click();
+        
+        // Cleanup
+        setTimeout(() => {
+          document.body.removeChild(link);
+          window.URL.revokeObjectURL(url);
+        }, 100);
+
+        console.log("PDF berhasil diunduh pada", new Date().toISOString());
+        alert("PDF berhasil diunduh!");
+        
+      } catch (error) {
+        console.error("Gagal export PDF:", {
+          message: error.message,
+          code: error.code,
+          status: error.response?.status,
+          statusText: error.response?.statusText,
+          timestamp: new Date().toISOString()
+        });
+        
+        // More informative error message
+        let errorMsg = "Gagal mengunduh PDF. ";
+        if (error.code === 'ECONNABORTED') {
+          errorMsg += "Request timeout - laporan terlalu besar atau server lambat.";
+        } else if (error.response?.status === 401) {
+          errorMsg += "Anda tidak terauthorisasi. Silakan login ulang.";
+        } else if (error.response?.status === 500) {
+          errorMsg += "Server error. Silakan coba lagi nanti.";
+        } else {
+          errorMsg += "Silakan coba lagi.";
+        }
+        
+        alert(errorMsg);
+      } finally {
+        this.loadingPdf = false;
+      }
+    },
+    getStatusColor(status) {
+      if (status === 'dikonfirmasi' || status === 'selesai') return 'success';
+      if (status === 'menunggu_pembayaran') return 'warning';
+      if (status === 'menunggu_konfirmasi') return 'orange';
+      if (status === 'batal') return 'error';
+      if (status === 'tidak_datang') return 'grey-darken-3';
+      return 'grey';
+    },
+    formatStatusLabel(status) {
+      const labels = {
+        'menunggu_pembayaran': 'Menunggu Pembayaran',
+        'menunggu_konfirmasi': 'Menunggu Konfirmasi',
+        'dikonfirmasi': 'Dikonfirmasi',
+        'selesai': 'Selesai',
+        'batal': 'Batal',
+        'tidak_datang': 'Tidak Datang'
+      };
+      return labels[status] || status.replace('_', ' ');
     },
     formatRupiah(angka) {
       return new Intl.NumberFormat('id-ID', {

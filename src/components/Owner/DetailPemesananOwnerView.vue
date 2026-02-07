@@ -23,7 +23,7 @@
                 </div>
                 <div class="d-flex align-center gap-2">
                     <v-chip :color="getStatusColor(pesanan.status_pemesanan)" variant="elevated" class="text-uppercase font-weight-bold mr-2">
-                         {{ pesanan.status_pemesanan.replace('_', ' ') }}
+                         {{ formatStatusLabel(pesanan.status_pemesanan) }}
                     </v-chip>
                     
                     <v-btn 
@@ -34,6 +34,28 @@
                         @click="cancelDialog = true"
                     >
                         Batalkan
+                    </v-btn>
+                    
+                    <v-btn
+                        v-if="canMarkNoShow"
+                        color="error"
+                        variant="flat"
+                        class="ml-2"
+                        prepend-icon="mdi-account-cancel"
+                        @click="noShowDialog = true"
+                    >
+                        Tandai Tidak Datang
+                    </v-btn>
+                    
+                    <v-btn
+                        v-if="pesanan.status_pemesanan === 'menunggu_konfirmasi'"
+                        color="primary"
+                        variant="flat"
+                        class="ml-2"
+                        prepend-icon="mdi-cash-check"
+                        :to="`/admin/verifikasi-pembayaran/${pesanan.id}`"
+                    >
+                        Verifikasi
                     </v-btn>
                 </div>
             </div>
@@ -119,21 +141,36 @@
                                     <td class="text-center text-caption">{{ placement.check_in_aktual ? formatTime(placement.check_in_aktual) : '-' }}</td>
                                     <td class="text-center text-caption">{{ placement.check_out_aktual ? formatTime(placement.check_out_aktual) : '-' }}</td>
                                     <td class="text-right pr-6">
-                                        <v-btn
-                                            v-if="placement.status_penempatan === 'assigned'"
-                                            color="error"
-                                            size="small"
-                                            variant="tonal"
-                                            prepend-icon="mdi-logout"
-                                            class="text-none"
-                                            :loading="loadingAction === placement.id"
-                                            @click="handleCheckOut(placement.id)"
-                                        >
-                                            Check Out
-                                        </v-btn>
+                                        <div class="d-flex justify-end gap-2">
+                                            <!-- Tombol Check Out -->
+                                            <v-btn
+                                                v-if="placement.status_penempatan === 'assigned'"
+                                                color="error"
+                                                size="small"
+                                                variant="tonal"
+                                                prepend-icon="mdi-logout"
+                                                class="text-none"
+                                                :loading="loadingAction === placement.id"
+                                                @click="handleCheckOut(placement.id)"
+                                            >
+                                                Check Out
+                                            </v-btn>
+
+                                            <!-- Tombol Ganti Unit (Baru) -->
+                                            <v-btn
+                                                v-if="placement.status_penempatan !== 'checked_out' && placement.status_penempatan !== 'cancelled'"
+                                                color="warning"
+                                                size="small"
+                                                variant="tonal"
+                                                prepend-icon="mdi-swap-horizontal"
+                                                class="text-none"
+                                                @click="openGantiUnitDialog(detail, placement)"
+                                            >
+                                                Ganti Unit
+                                            </v-btn>
 
                                         <v-btn
-                                            v-else-if="placement.status_penempatan === 'pending' && pesanan.status_pemesanan !== 'batal'"
+                                            v-if="placement.status_penempatan === 'pending' && pesanan.status_pemesanan !== 'batal'"
                                             color="primary"
                                             size="small"
                                             variant="flat"
@@ -145,23 +182,24 @@
                                         >
                                             Proses Masuk
                                         </v-btn>
-                                        <span v-else>
-                                            <v-btn
-                                                v-if="placement.status_penempatan === 'checked_out' && placement.kamar_unit?.status_unit !== 'available'"
-                                                color="success"
-                                                size="small"
-                                                variant="outlined"
-                                                prepend-icon="mdi-broom"
-                                                class="text-none"
-                                                :loading="loadingAction === placement.id"
-                                                @click="handleSetAvailable(placement.kamar_unit_id, placement.id)"
-                                            >
-                                                Sudah Bersih
-                                            </v-btn>
-                                            <span v-else class="text-caption text-grey italic ml-2">
-                                                {{ placement.status_penempatan === 'cancelled' ? 'Dibatalkan' : 'Selesai' }}
+                                            <span v-if="['checked_out', 'cancelled', 'selesai'].includes(placement.status_penempatan)">
+                                                <v-btn
+                                                    v-if="placement.status_penempatan === 'checked_out' && placement.kamar_unit?.status_unit !== 'available'"
+                                                    color="success"
+                                                    size="small"
+                                                    variant="outlined"
+                                                    prepend-icon="mdi-broom"
+                                                    class="text-none"
+                                                    :loading="loadingAction === placement.id"
+                                                    @click="handleSetAvailable(placement.kamar_unit_id, placement.id)"
+                                                >
+                                                    Sudah Bersih
+                                                </v-btn>
+                                                <span v-else class="text-caption text-grey italic ml-2">
+                                                    {{ placement.status_penempatan === 'cancelled' ? 'Dibatalkan' : 'Selesai' }}
+                                                </span>
                                             </span>
-                                        </span>
+                                        </div>
                                     </td>
                                 </tr>
                             </tbody>
@@ -188,6 +226,38 @@
         </v-card>
 
     </div>
+
+    <!-- Dialog Tidak Datang -->
+    <v-dialog v-model="noShowDialog" max-width="600">
+      <v-card>
+        <v-card-title class="text-h5 bg-error text-white d-flex align-center">
+          <v-icon start class="mr-2">mdi-account-cancel</v-icon>
+          Tandai Tidak Datang
+        </v-card-title>
+        <v-card-text class="pt-4">
+          <p class="mb-3">Apakah Anda yakin pelanggan ini tidak datang?</p>
+          <v-alert type="warning" variant="tonal" density="compact" class="mb-4">
+            <strong>Order #{{ pesanan.kode_booking }}</strong><br>
+            Tindakan ini akan membatalkan pesanan dan merilis kamar untuk booking lain.
+          </v-alert>
+          <v-alert type="info" variant="tonal" density="compact">
+            <strong>Catatan:</strong> Pastikan Anda sudah mencoba menghubungi pelanggan sebelum menandai sebagai tidak datang.
+          </v-alert>
+        </v-card-text>
+        <v-card-actions>
+          <v-spacer></v-spacer>
+          <v-btn variant="text" @click="noShowDialog = false">Batal</v-btn>
+          <v-btn 
+            color="error" 
+            variant="flat" 
+            @click="confirmMarkNoShow" 
+            :loading="markingNoShow"
+          >
+            Ya, Tandai Tidak Datang
+          </v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
 
     <!-- Cancel Booking Dialog -->
     <v-dialog v-model="cancelDialog" max-width="600">
@@ -226,6 +296,60 @@
       </v-card>
     </v-dialog>
 
+    <!-- Dialog Ganti Unit -->
+    <v-dialog v-model="gantiUnitDialog" max-width="500">
+        <v-card>
+            <v-card-title>Ganti Unit Kamar</v-card-title>
+            <v-card-text>
+                <v-alert type="info" variant="tonal" density="compact" class="mb-4">
+                    Unit saat ini: <strong>{{ selectedPlacement?.kamar_unit?.nomor_unit }}</strong>
+                </v-alert>
+
+                <v-select
+                    v-model="selectedRoomTypeId"
+                    :items="roomTypes"
+                    item-title="tipe_kamar"
+                    item-value="id_kamar"
+                    label="Pilih Tipe Kamar (Upgrade/Downgrade Gratis)"
+                    variant="outlined"
+                    density="compact"
+                    class="mb-2"
+                ></v-select>
+
+                <v-select
+                    v-model="newUnitId"
+                    :items="availableUnits"
+                    item-title="nomor_unit"
+                    item-value="id"
+                    label="Pilih Unit Baru"
+                    variant="outlined"
+                    :loading="loadingUnits"
+                    :no-data-text="loadingUnits ? 'Memuat...' : 'Tidak ada unit tersedia'"
+                ></v-select>
+
+                <v-checkbox
+                    v-model="markAsMaintenance"
+                    label="Tandai unit lama sebagai 'Maintenance' (Rusak)?"
+                    density="compact"
+                    color="error"
+                ></v-checkbox>
+            </v-card-text>
+            <v-card-actions>
+                <v-spacer></v-spacer>
+                <v-btn variant="text" @click="gantiUnitDialog = false">Batal</v-btn>
+                <v-btn 
+                    color="primary" 
+                    variant="flat" 
+                    @click="confirmGantiUnit" 
+                    :loading="swapping"
+                    :disabled="!newUnitId"
+                >
+                    Simpan Perubahan
+                </v-btn>
+            </v-card-actions>
+        </v-card>
+    </v-dialog>
+
     <!-- Snackbar -->
     <v-snackbar v-model="snackbar.show" :color="snackbar.color" timeout="3000">
       {{ snackbar.text }}
@@ -237,7 +361,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, reactive } from 'vue';
+import { ref, onMounted, reactive, watch, computed } from 'vue'; // Added watch, computed
 import { useRoute } from 'vue-router';
 import apiClient from '../../axios';
 
@@ -254,6 +378,21 @@ const snackbar = ref({ show: false, text: '', color: '' });
 const cancelDialog = ref(false);
 const cancelReason = ref('');
 const cancelling = ref(false);
+
+// State Tidak Datang
+const noShowDialog = ref(false);
+const markingNoShow = ref(false);
+
+// State Ganti Unit
+const gantiUnitDialog = ref(false);
+const selectedPlacement = ref(null);
+const availableUnits = ref([]);
+const newUnitId = ref(null);
+const markAsMaintenance = ref(false);
+const loadingUnits = ref(false);
+const swapping = ref(false);
+const roomTypes = ref([]); // List semua tipe kamar
+const selectedRoomTypeId = ref(null); // Tipe kamar yang dipilih untuk swap
 
 // 1. Fetch Detail Pesanan
 const fetchPesanan = async () => {
@@ -277,6 +416,102 @@ const fetchPesanan = async () => {
         console.error(err);
     } finally {
         loading.value = false;
+    }
+};
+
+const fetchRoomTypes = async () => {
+    try {
+        const response = await apiClient.get('/kamar'); // Public route list kamar
+        if (response.success) {
+            roomTypes.value = response.data;
+        }
+    } catch (e) {
+        console.error("Gagal load tipe kamar", e);
+    }
+};
+
+const fetchAvailableUnits = async () => {
+    if (!selectedRoomTypeId.value || !pesanan.value) return;
+    
+    loadingUnits.value = true;
+    availableUnits.value = [];
+    
+    try {
+        const response = await apiClient.get('/admin/available-units', { 
+            params: { 
+                kamar_id: selectedRoomTypeId.value,
+                check_in: pesanan.value.tanggal_check_in,
+                check_out: pesanan.value.tanggal_check_out
+            } 
+        });
+
+        if (response.success) {
+            // Filter unit biar gak pilih diri sendiri (hanya jika tipe kamarnya sama dgn yang sekarang)
+            // Jika upgrade ke tipe lain, tampilkan semua.
+            if (selectedPlacement.value && selectedPlacement.value.kamar_unit?.kamar_id === selectedRoomTypeId.value) {
+                 availableUnits.value = response.data.filter(u => u.id !== selectedPlacement.value.kamar_unit_id);
+            } else {
+                 availableUnits.value = response.data;
+            }
+        }
+    } catch (err) {
+        console.error(err);
+        showSnackbar('error', 'Gagal memuat daftar unit');
+    } finally {
+        loadingUnits.value = false;
+    }
+};
+
+// Watch perubahan tipe kamar untuk load unit baru
+watch(selectedRoomTypeId, () => {
+    fetchAvailableUnits();
+});
+
+// --- GANTI UNIT LOGIC ---
+const openGantiUnitDialog = async (detail, placement) => {
+    selectedPlacement.value = placement;
+    newUnitId.value = null;
+    markAsMaintenance.value = false;
+    
+    // Ensure room types are loaded
+    if (roomTypes.value.length === 0) {
+        await fetchRoomTypes();
+    }
+
+    // Set default tipe kamar ke tipe kamar asal
+    // Gunakan id_kamar dari detail (fallback ke object kamar jika id flat tidak ada)
+    // Pastikan tipe data sama (Number)
+    const currentKamarId = detail.kamar_id || detail.kamar?.id_kamar;
+    selectedRoomTypeId.value = currentKamarId ? Number(currentKamarId) : null;
+
+    gantiUnitDialog.value = true;
+    
+    // Fetch ulang unit (akan ditrigger oleh watcher juga, tapi kita panggil explicit agar aman saat dialog buka)
+    await fetchAvailableUnits();
+};
+
+const confirmGantiUnit = async () => {
+    if (!newUnitId.value) return;
+
+    swapping.value = true;
+    try {
+        const response = await apiClient.post('/admin/ganti-unit', {
+            penempatan_id: selectedPlacement.value.id,
+            new_kamar_unit_id: newUnitId.value,
+            old_unit_status: markAsMaintenance.value ? 'maintenance' : 'available'
+        });
+
+        if (response.success) {
+            showSnackbar('success', response.message);
+            gantiUnitDialog.value = false;
+            await fetchPesanan(); // Refresh data
+        } else {
+            showSnackbar('error', response.message);
+        }
+    } catch (err) {
+        showSnackbar('error', err.response?.data?.message || 'Gagal mengganti unit');
+    } finally {
+        swapping.value = false;
     }
 };
 
@@ -378,6 +613,26 @@ const confirmCancelBooking = async () => {
     }
 };
 
+// 6. Mark as Tidak Datang
+const confirmMarkNoShow = async () => {
+    markingNoShow.value = true;
+    try {
+        const response = await apiClient.post(`/admin/pemesanan/${pesananId}/mark-no-show`);
+        
+        if (response.success) {
+            showSnackbar('success', response.message || 'Pesanan berhasil ditandai sebagai tidak datang');
+            noShowDialog.value = false;
+            await fetchPesanan();
+        } else {
+            showSnackbar('error', response.message || 'Gagal menandai pesanan sebagai tidak datang');
+        }
+    } catch (err) {
+        showSnackbar('error', err.response?.data?.message || 'Gagal menandai pesanan sebagai tidak datang');
+    } finally {
+        markingNoShow.value = false;
+    }
+};
+
 
 
 
@@ -392,8 +647,44 @@ const getUnassignedCount = (detail) => {
 const getStatusColor = (status) => {
     if (status === 'dikonfirmasi' || status === 'selesai' || status === 'confirmed') return 'success';
     if (status === 'menunggu_pembayaran') return 'warning';
+    if (status === 'tidak_datang') return 'grey-darken-3';
     return 'grey';
 };
+
+const formatStatusLabel = (status) => {
+    const labels = {
+        'menunggu_pembayaran': 'Menunggu Pembayaran',
+        'menunggu_konfirmasi': 'Menunggu Konfirmasi',
+        'dikonfirmasi': 'Dikonfirmasi',
+        'selesai': 'Selesai',
+        'batal': 'Batal',
+        'tidak_datang': 'Tidak Datang'
+    };
+    return labels[status] || status.replace('_', ' ');
+};
+
+// Computed: Check if can mark tidak datang
+const canMarkNoShow = computed(() => {
+    if (!pesanan.value) return false;
+    
+    // 1. Status harus dikonfirmasi
+    if (pesanan.value.status_pemesanan !== 'dikonfirmasi') return false;
+    
+    // 2. Tanggal check-in harus hari ini atau sudah lewat
+    const checkInDate = new Date(pesanan.value.tanggal_check_in);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    checkInDate.setHours(0, 0, 0, 0);
+    
+    if (checkInDate > today) return false;
+    
+    // 3. Belum ada yang check-in (semua check_in_aktual masih null)
+    const hasCheckedIn = pesanan.value.detail_pemesanans?.some(detail => 
+        detail.penempatan_kamars?.some(p => p.check_in_aktual !== null)
+    );
+    
+    return !hasCheckedIn;
+});
 
 const getPlacementColor = (status) => {
     switch(status) {
@@ -418,7 +709,10 @@ const showSnackbar = (color, text) => {
     snackbar.value = { show: true, color, text };
 };
 
-onMounted(fetchPesanan);
+onMounted(() => {
+    fetchPesanan();
+    fetchRoomTypes();
+});
 </script>
 
 <style scoped>
@@ -428,4 +722,5 @@ onMounted(fetchPesanan);
 .border-dashed {
     border: 1px dashed #1976D2;
 }
+.gap-2 { gap: 8px; }
 </style>

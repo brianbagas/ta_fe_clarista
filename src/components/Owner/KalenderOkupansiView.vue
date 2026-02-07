@@ -90,7 +90,7 @@
 </template>
 
 <script>
-import axios from 'axios';
+import apiClient from '../../axios';
 
 export default {
   data() {
@@ -226,12 +226,13 @@ export default {
         try {
             const token = localStorage.getItem('token');
             // Pastikan URL API sudah benar
-            const response = await axios.get('http://127.0.0.1:8000/api/admin/kalender-data', {
+            // Pastikan URL API sudah benar
+            const response = await apiClient.get('/admin/kalender-data', {
                 params: {
                     month: this.currentDate.getMonth() + 1,
                     year: this.currentYear
                 },
-                headers: { Authorization: `Bearer ${token}` }
+                // headers: { Authorization: `Bearer ${token}` } // apiClient already handles this
             });
             
             // Masukkan data real dari API

@@ -32,9 +32,14 @@
 
     <template v-slot:append>
         <div class="pa-2">
-            <v-btn block color="error" variant="text" prepend-icon="mdi-logout" @click="auth.logout">
-                Logout
-            </v-btn>
+            <v-list density="compact" nav>
+                <v-list-item 
+                    prepend-icon="mdi-logout" 
+                    title="Logout" 
+                    @click="auth.logout" 
+                    class="text-error"
+                ></v-list-item>
+            </v-list>
         </div>
     </template>
   </v-navigation-drawer>

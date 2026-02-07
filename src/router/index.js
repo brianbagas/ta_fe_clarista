@@ -119,7 +119,7 @@ const routes = [
     component: UnggahBuktiBayarView,
   },
   {
-    path: '/admin/verifikasi-pembayaran',
+    path: '/admin/verifikasi-pembayaran/:id',
     name: 'VerifikasiPembayaran',
     component: VerifikasiPembayaranView,
     meta: { requiresAuth: true, requiresOwner: true }

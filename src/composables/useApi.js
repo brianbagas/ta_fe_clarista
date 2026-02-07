@@ -1,11 +1,7 @@
 // src/composables/useApi.js
 import { ref } from 'vue';
 
-/**
- * Composable untuk handle API calls dengan ApiResponseTrait format
- * Sudah tidak perlu lagi karena interceptor sudah handle unwrapping
- * Tapi tetap berguna untuk consistent error handling
- */
+
 export function useApi() {
     const loading = ref(false);
     const error = ref(null);
@@ -24,7 +20,6 @@ export function useApi() {
         try {
             const response = await apiFunction();
 
-            // After interceptor, response is { success, message, data }
             if (response.success) {
                 if (onSuccess) onSuccess(response.data, response.message);
                 return response.data;

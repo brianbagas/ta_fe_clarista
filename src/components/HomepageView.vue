@@ -18,7 +18,7 @@
             {{ content.hero_title || 'SELAMAT DATANG DI CLARISTA HOMESTAY' }}
           </h1>
           <p class="text-h6 font-weight-light mb-8 opacity-90 max-width-800 mx-auto">
-            {{ content.hero_subtitle || 'Penginapan nyaman dengan sentuhan personal di jantung Kretek, Yogyakarta.' }}
+            {{ content.hero_subtitle || 'Penginapan nyaman dengan sentuhan personal di Yogyakarta.' }}
           </p>
         </v-container>
       </v-img>
@@ -283,6 +283,21 @@
       </v-row>
     </v-container>
 
+    <v-container class="my-16">
+      <h2 class="text-h4 text-center font-weight-bold mb-8">Lokasi Kami</h2>
+      <v-card class="rounded-xl overflow-hidden elevation-4 mx-auto" max-width="1200">
+        <iframe 
+          :src="formattedGoogleMapsUrl" 
+          width="100%" 
+          height="450" 
+          style="border:0;" 
+          allowfullscreen="" 
+          loading="lazy" 
+          referrerpolicy="no-referrer-when-downgrade">
+        </iframe>
+      </v-card>
+    </v-container>
+
   </div>
 
     <!-- Dialog Detail Kamar (Dipindahkan dari Kamar.vue) -->
@@ -429,9 +444,24 @@ const heroImageUrl = computed(() => {
     // Pastikan path bersih dari 'public/' jika API mengembalikannya
     const cleanPath = content.value.hero_image_path.replace('public/', '').replace(/^\//, '');
     // Gunakan URL storage Laravel standar
-    return `http://api.claristahomestay.web.id/storage/${cleanPath}`;
+    return `https://api.claristahomestay.web.id/storage/${cleanPath}`;
   }
   return 'https://images.unsplash.com/photo-1566073771259-6a8506099945?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80'; // Gambar Tropical Placeholder yang lebih bagus
+});
+
+// Logic Maps: Pastikan yang dipakai adalah Embed URL, bukan Share URL
+const formattedGoogleMapsUrl = computed(() => {
+    const dbLink = content.value.link_gmaps;
+    const defaultLink = 'https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3953.496192144491!2d110.44926807500443!3d-7.737073792281389!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x2e7a5b3c8c672f8b%3A0x6482f785858f81a9!2sClarista%20Homestay!5e0!3m2!1sid!2sid!4v1770111401311!5m2!1sid!2sid';
+
+    if (!dbLink) return defaultLink;
+
+    if (dbLink.includes('google.com/maps/embed')) {
+        return dbLink;
+    }
+
+    console.warn('Link Maps di database bukan link Embed. Menggunakan default.');
+    return defaultLink;
 });
 
 // Helper Formatting & Parsing

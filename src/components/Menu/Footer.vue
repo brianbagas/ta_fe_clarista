@@ -21,17 +21,17 @@
 
         <v-col cols="12" md="4">
           <div class="text-subtitle-1 font-weight-bold mb-3">Hubungi Kami</div>
-          <div class="d-flex align-center mb-2">
+          <div class="d-flex align-center mb-2" v-if="content.alamat">
             <v-icon start size="small">mdi-map-marker</v-icon>
-            <span class="text-body-2">Jl. 123, Kalasan</span>
+            <span class="text-body-2">{{ content.alamat || 'Alamat belum diatur' }}</span>
           </div>
-          <div class="d-flex align-center mb-2">
+          <div class="d-flex align-center mb-2" v-if="content.telepon">
             <v-icon start size="small">mdi-whatsapp</v-icon>
-            <span class="text-body-2">+62 811-1111-1111</span>
+            <span class="text-body-2">{{ content.telepon || '-' }}</span>
           </div>
-          <div class="d-flex align-center">
+          <div class="d-flex align-center" v-if="content.email">
             <v-icon start size="small">mdi-email-outline</v-icon>
-            <span class="text-body-2">info@claristahomestay.com</span>
+            <span class="text-body-2">{{ content.email || '-' }}</span>
           </div>
         </v-col>
       </v-row>
@@ -44,3 +44,29 @@
     </v-container>
   </v-footer>
 </template>
+
+<script setup>
+import { ref, onMounted } from 'vue';
+import apiClient from '../../axios';
+
+const content = ref({
+    alamat: '',
+    telepon: '',
+    email: ''
+});
+
+const fetchContent = async () => {
+    try {
+        const response = await apiClient.get('/content/homepage');
+        if (response.success && response.data) {
+            content.value = response.data;
+        }
+    } catch (err) {
+        console.error("Gagal memuat konten footer:", err);
+    }
+};
+
+onMounted(() => {
+    fetchContent();
+});
+</script>

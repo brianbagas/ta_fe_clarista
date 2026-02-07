@@ -28,7 +28,7 @@
           <label class="input-label">Password</label>
           <v-text-field
             v-model="password"
-            type="password"
+            :type="showPassword ? 'text' : 'password'"
             placeholder="Masukkan password Anda"
             variant="outlined"
             density="comfortable"
@@ -37,6 +37,8 @@
             hide-details="auto"
             class="custom-field"
             rounded="lg"
+            :append-inner-icon="showPassword ? 'mdi-eye' : 'mdi-eye-off'"
+            @click:append-inner="showPassword = !showPassword"
           ></v-text-field>
         </div>
 
@@ -70,6 +72,7 @@ import { login } from '../stores/auth';
 
 const email = ref('');
 const password = ref('');
+const showPassword = ref(false);
 const error = ref(null);
 
 const handleLogin = async () => {

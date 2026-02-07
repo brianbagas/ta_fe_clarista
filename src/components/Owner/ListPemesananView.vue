@@ -71,7 +71,7 @@
         <template v-slot:[`item.status_pemesanan`]="{ item }">
           <div class="text-left">
             <v-chip :color="getStatusColor(item.status_pemesanan)" size="small" class="font-weight-bold">
-                {{ item.status_pemesanan.replace('_', ' ').toUpperCase() }}
+                {{ formatStatusLabel(item.status_pemesanan) }}
             </v-chip>
           </div>
         </template>
@@ -95,14 +95,14 @@
                 Check In
             </v-btn>
 
-             <v-btn 
+            <v-btn 
                 v-else-if="item.status_pemesanan === 'menunggu_konfirmasi'"
                 color="warning" 
                 size="x-small" 
                 variant="flat"
                 prepend-icon="mdi-file-check" 
                 class="text-none"
-                @click="viewDetails(item)"
+                :to="`/admin/verifikasi-pembayaran/${item.id}`"
             >
                 Verifikasi
             </v-btn>
@@ -188,7 +188,7 @@ const filteredPemesanans = computed(() => {
         }
         
         if (activeTab.value === 'selesai_batal') {
-            return ['selesai', 'batal'].includes(p.status_pemesanan);
+            return ['selesai', 'batal', 'tidak_datang'].includes(p.status_pemesanan);
         }
         
         return true;
@@ -250,8 +250,22 @@ const hasActiveStay = (pemesanan) => {
 const getStatusColor = (status) => {
   if (status === 'dikonfirmasi' || status === 'selesai') return 'success';
   if (status === 'menunggu_pembayaran') return 'warning';
+  if (status === 'menunggu_konfirmasi') return 'orange';
   if (status === 'batal') return 'error';
+  if (status === 'tidak_datang') return 'grey-darken-3';
   return 'grey';
+};
+
+const formatStatusLabel = (status) => {
+  const labels = {
+    'menunggu_pembayaran': 'MENUNGGU PEMBAYARAN',
+    'menunggu_konfirmasi': 'MENUNGGU KONFIRMASI',
+    'dikonfirmasi': 'DIKONFIRMASI',
+    'selesai': 'SELESAI',
+    'batal': 'BATAL',
+    'tidak_datang': 'TIDAK DATANG'
+  };
+  return labels[status] || status.replace('_', ' ').toUpperCase();
 };
 
 const formatDate = (date) => new Date(date).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' });
