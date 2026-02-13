@@ -139,12 +139,14 @@ const fetchUnits = async () => {
 const getStatusColor = (status) => {
   if (status === 'available') return 'success';
   if (status === 'unavailable') return 'error';
+  if (status === 'kotor') return 'orange';
   return 'warning'; // maintenance
 };
 
 const statusOptions = [
     { title: 'Available', value: 'available' },
     { title: 'Unavailable', value: 'unavailable' },
+    { title: 'Kotor', value: 'kotor' },
     { title: 'Maintenance', value: 'maintenance' },
 ];
 

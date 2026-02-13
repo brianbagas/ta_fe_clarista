@@ -1,7 +1,7 @@
 <template>
   <v-container>
     <v-card>
-      <v-card-title class="d-flex align-center pe-2">
+      <v-card-title class="d-flex align-center pe-2 text-h4">
         Manajemen Review Pelanggan
 
         <v-spacer></v-spacer>

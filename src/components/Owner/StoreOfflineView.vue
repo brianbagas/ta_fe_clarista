@@ -4,14 +4,14 @@
       <v-col cols="12" md="10">
         
         <div class="mb-4">
-            <h2 class="text-h4 font-weight-bold text-primary">Input Walk-in Guest</h2>
-            <p class="text-subtitle-1 text-grey">Transaksi langsung dan Check-in otomatis</p>
+            <h2 class="text-left text-h4 font-weight-bold text-primary">Input Walk-in Guest</h2>
+            <p class="text-left text-subtitle-1 text-grey">{{ isCheckInToday ? 'Transaksi langsung dan Check-in otomatis' : 'Reservasi offline untuk tanggal mendatang' }}</p>
         </div>
 
         <v-card class="mb-6" elevation="2">
-            <v-card-title class="bg-grey-lighten-4">
+            <v-card-title class="bg-grey-lighten-4 text-left">
                 <v-icon icon="mdi-calendar-clock" start></v-icon>
-                Langkah 1: Cek Jadwal
+               Cek Jadwal
             </v-card-title>
             <v-card-text class="pt-4">
                 <v-row align ="center">
@@ -26,21 +26,20 @@
                             density="compact"
                         ></v-text-field>
                     </v-col>
-                    <v-col cols="12" md="3">
+                    <v-col cols="12" md="4">
                         <v-text-field
-                            v-model="form.durasi"
-                            label="Durasi (Malam)"
-                            type="number"
-                            min="1"
+                            v-model="form.check_out"
+                            label="Tanggal Check-out"
+                            type="date"
+                            :min="minCheckOut"
                             variant="outlined"
                             hide-details="auto"
                             density="compact"
-                            suffix="Malam"
                         ></v-text-field>
                     </v-col>
-                    <v-col cols="12" md="3">
-                         <div class="text-caption text-grey">Checkout:</div>
-                        <div class="font-weight-bold">{{ calculatedCheckOut }}</div>
+                    <v-col cols="12" md="2">
+                         <div class="text-caption text-grey">Durasi:</div>
+                        <div class="font-weight-bold text-primary">{{ durasi }} Malam</div>
                     </v-col>
                     <v-col cols="12" md="2">
                         <v-btn 
@@ -48,6 +47,7 @@
                             block 
                             @click="checkAvailability" 
                             :loading="loading"
+                            :disabled="durasi < 1"
                             prepend-icon="mdi-magnify">
                             Cek
                         </v-btn>
@@ -56,17 +56,22 @@
             </v-card-text>
         </v-card>
 
+        <!-- Room Selection - Multi Select with Quantity -->
         <div v-if="rooms.length > 0" class="mb-6 animate__animated animate__fadeIn">
-            <h3 class="text-h6 mb-3">Pilih Tipe Kamar</h3>
+            <h3 class="text-h6 mb-3">
+                Pilih Tipe Kamar 
+                <v-chip v-if="selectedRooms.length > 0" color="primary" size="small" class="ml-2">
+                    {{ selectedRooms.length }} tipe dipilih
+                </v-chip>
+            </h3>
             <v-row>
                 <v-col v-for="room in rooms" :key="room.id" cols="12" md="4">
                     <v-card 
                         :disabled="!room.is_available" 
-                        :color="selectedRoom?.id === room.id ? 'primary-lighten-5' : ''"
-                        :class="selectedRoom?.id === room.id ? 'border-primary' : ''"
+                        :color="isRoomSelected(room) ? 'primary-lighten-5' : ''"
+                        :class="isRoomSelected(room) ? 'border-primary' : ''"
                         class="h-100 d-flex flex-column"
                         style="border: 2px solid transparent; transition: all 0.2s"
-                        @click="room.is_available ? selectRoom(room) : null"
                         elevation="2"
                     >
                         <v-img
@@ -93,15 +98,48 @@
                                 </v-chip>
                                 <span class="text-caption">Sisa: <strong>{{ room.sisa_kamar }}</strong> unit</span>
                             </div>
+                            
+                            <!-- Quantity Stepper -->
+                            <div v-if="room.is_available" class="mt-4">
+                                <div class="text-caption text-grey mb-1">Jumlah Unit</div>
+                                <div class="d-flex align-center justify-center ga-2">
+                                    <v-btn
+                                        icon
+                                        size="small"
+                                        variant="outlined"
+                                        color="primary"
+                                        :disabled="getRoomQuantity(room) <= 0"
+                                        @click="decrementRoom(room)"
+                                    >
+                                        <v-icon>mdi-minus</v-icon>
+                                    </v-btn>
+                                    <div class="text-h6 mx-3" style="min-width: 40px; text-align: center;">
+                                        {{ getRoomQuantity(room) }}
+                                    </div>
+                                    <v-btn
+                                        icon
+                                        size="small"
+                                        variant="outlined"
+                                        color="primary"
+                                        :disabled="getRoomQuantity(room) >= room.sisa_kamar"
+                                        @click="incrementRoom(room)"
+                                    >
+                                        <v-icon>mdi-plus</v-icon>
+                                    </v-btn>
+                                </div>
+                            </div>
                         </v-card-text>
 
                         <v-card-actions>
                             <v-btn 
                                 block 
-                                :color="selectedRoom?.id === room.id ? 'primary' : 'grey-darken-1'" 
-                                :variant="selectedRoom?.id === room.id ? 'flat' : 'outlined'"
+                                :color="isRoomSelected(room) ? 'primary' : 'grey-darken-1'" 
+                                :variant="isRoomSelected(room) ? 'flat' : 'outlined'"
+                                @click="toggleRoom(room)"
+                                :disabled="!room.is_available"
                             >
-                                {{ selectedRoom?.id === room.id ? 'Dipilih' : 'Pilih Kamar Ini' }}
+                                <v-icon start>{{ isRoomSelected(room) ? 'mdi-check' : 'mdi-plus' }}</v-icon>
+                                {{ isRoomSelected(room) ? `${getRoomQuantity(room)} Unit Dipilih` : 'Tambah ke Pesanan' }}
                             </v-btn>
                         </v-card-actions>
                     </v-card>
@@ -109,43 +147,60 @@
             </v-row>
         </div>
 
+        <!-- Summary & Guest Form -->
         <v-slide-y-transition>
-            <v-card v-if="selectedRoom" class="mb-10 border-t-4 border-primary" elevation="4">
+            <v-card v-if="selectedRooms.length > 0" class="mb-10 border-t-4 border-primary" elevation="4">
                 <v-card-title class="d-flex align-center">
                     <v-icon icon="mdi-account-details" color="primary" class="mr-2"></v-icon>
-                    Langkah 3: Data Tamu & Pembayaran
+                    Data Tamu & Pembayaran
                 </v-card-title>
                 <v-divider></v-divider>
                 
                 <v-card-text class="pt-5">
                     <v-row>
                         <v-col cols="12" md="4" class="bg-grey-lighten-4 rounded pa-4">
-                            <h4 class="text-subtitle-2 text-uppercase text-grey mb-3">Ringkasan</h4>
-                            <div class="d-flex justify-space-between mb-2">
-                                <span>Tipe Kamar:</span>
-                                <strong>{{ selectedRoom.nama_kamar }}</strong>
+                            <h4 class="text-subtitle-2 text-uppercase text-grey mb-3">Ringkasan Pesanan</h4>
+                            
+                            <!-- List all selected rooms -->
+                            <div v-for="(item, index) in selectedRooms" :key="index" class="mb-3">
+                                <div class="d-flex justify-space-between align-center">
+                                    <strong>{{ item.room.nama_kamar }}</strong>
+                                    <v-btn icon size="x-small" variant="text" @click="removeRoom(item.room)">
+                                        <v-icon size="small">mdi-close</v-icon>
+                                    </v-btn>
+                                </div>
+                                <div class="text-caption text-grey">
+                                    {{ item.qty }} unit × {{ formatRupiah(item.room.harga) }} × {{ durasi }} malam
+                                </div>
+                                <div class="text-body-2 text-right">
+                                    {{ formatRupiah(item.room.harga * item.qty * durasi) }}
+                                </div>
                             </div>
+                            
+                            <v-divider class="my-3"></v-divider>
+                            
                             <div class="d-flex justify-space-between mb-2">
                                 <span>Check-in:</span>
                                 <span>{{ form.check_in }}</span>
                             </div>
                             <div class="d-flex justify-space-between mb-2">
+                                <span>Check-out:</span>
+                                <span>{{ form.check_out }}</span>
+                            </div>
+                            <div class="d-flex justify-space-between mb-2">
                                 <span>Durasi:</span>
-                                <span>{{ form.durasi }} Malam</span>
+                                <span>{{ durasi }} Malam</span>
                             </div>
-                             <div class="d-flex justify-space-between mb-2">
-                                <span>Harga/Malam:</span>
-                                <span>{{ formatRupiah(selectedRoom.harga) }}</span>
-                            </div>
+                            
                             <v-divider class="my-3"></v-divider>
                             <div class="d-flex justify-space-between text-h6 text-primary">
                                 <span>Total Bayar:</span>
                                 <strong>{{ formatRupiah(totalHarga) }}</strong>
                             </div>
                             <div class="mt-4">
-                                <v-chip color="success" label size="small" class="w-100 justify-center">
-                                    <v-icon start>mdi-check-circle</v-icon>
-                                    Auto LUNAS (Walk-in)
+                                <v-chip :color="isCheckInToday ? 'success' : 'info'" label size="small" class="w-100 justify-center">
+                                    <v-icon start>{{ isCheckInToday ? 'mdi-check-circle' : 'mdi-calendar-clock' }}</v-icon>
+                                    {{ isCheckInToday ? 'Auto LUNAS & Check-in' : 'Reservasi Terkonfirmasi' }}
                                 </v-chip>
                             </div>
                         </v-col>
@@ -185,14 +240,14 @@
                             </v-row>
 
                             <v-btn 
-                                color="success" 
+                                :color="isCheckInToday ? 'success' : 'primary'" 
                                 size="large" 
                                 block 
                                 @click="submitWalkIn"
                                 :loading="processing"
-                                prepend-icon="mdi-cash-register"
+                                :prepend-icon="isCheckInToday ? 'mdi-cash-register' : 'mdi-calendar-check'"
                             >
-                                PROSES CHECK-IN SEKARANG
+                                {{ isCheckInToday ? 'PROSES CHECK-IN SEKARANG' : 'BUAT RESERVASI OFFLINE' }}
                             </v-btn>
                         </v-col>
                     </v-row>
@@ -212,24 +267,25 @@
   </v-container>
 </template>
 <script setup>
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed } from 'vue';
 import axios from '../../axios';
-// Sesuaikan import format rupiah jika kamu punya helper sendiri, 
-// atau gunakan function simple di bawah.
 
 // --- STATE ---
 const loading = ref(false);
 const processing = ref(false);
-const rooms = ref([]); // Menyimpan hasil cek ketersediaan
-const selectedRoom = ref(null); // Menyimpan kamar yang dipilih admin
+const rooms = ref([]);
+const selectedRooms = ref([]); // Array of { room: object, qty: number }
 
 // Form Input
 const form = ref({
-    check_in: new Date().toLocaleDateString('en-CA'), // Default hari ini
-    durasi: 1, // Default 1 malam
+    check_in: new Date().toLocaleDateString('en-CA'),
+    check_out: (() => {
+        const tomorrow = new Date();
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        return tomorrow.toLocaleDateString('en-CA');
+    })(),
     nama_pemesan: '',
     no_hp: '',
-    jumlah_kamar: 1, // Default 1 kamar
 });
 
 // Snackbar untuk notifikasi
@@ -240,39 +296,121 @@ const snackbar = ref({
 });
 
 // --- COMPUTED ---
-// Menghitung tanggal checkout otomatis untuk dikirim ke API Cek Ketersediaan
-const calculatedCheckOut = computed(() => {
-    if (!form.value.check_in || !form.value.durasi) return '';
+// Hitung durasi dari selisih tanggal
+const durasi = computed(() => {
+    if (!form.value.check_in || !form.value.check_out) return 0;
     
-    const date = new Date(form.value.check_in);
-    date.setDate(date.getDate() + parseInt(form.value.durasi));
-    return date.toISOString().substring(0, 10);
+    const checkIn = new Date(form.value.check_in);
+    const checkOut = new Date(form.value.check_out);
+    const diffTime = checkOut - checkIn;
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    return Math.max(0, diffDays);
 });
 
-// Hitung total harga real-time
+// Hitung total harga dari semua kamar yang dipilih
 const totalHarga = computed(() => {
-    if (!selectedRoom.value) return 0;
-    return selectedRoom.value.harga * form.value.durasi * form.value.jumlah_kamar;
+    return selectedRooms.value.reduce((total, item) => {
+        return total + (item.room.harga * item.qty * durasi.value);
+    }, 0);
+});
+
+const minDate = computed(() => {
+    return new Date().toLocaleDateString('en-CA');
+});
+
+// Minimal checkout = check-in + 1 hari
+const minCheckOut = computed(() => {
+    if (!form.value.check_in) return minDate.value;
+    
+    const date = new Date(form.value.check_in);
+    date.setDate(date.getDate() + 1);
+    return date.toLocaleDateString('en-CA');
+});
+
+const isCheckInToday = computed(() => {
+    if (!form.value.check_in) return true;
+    const today = new Date().toLocaleDateString('en-CA');
+    return form.value.check_in === today;
 });
 
 // --- FUNCTIONS ---
 
+// Check if room is selected
+const isRoomSelected = (room) => {
+    return selectedRooms.value.some(item => item.room.id_kamar === room.id_kamar);
+};
+
+// Get quantity for a room
+const getRoomQuantity = (room) => {
+    const found = selectedRooms.value.find(item => item.room.id_kamar === room.id_kamar);
+    return found ? found.qty : 0;
+};
+
+// Update room quantity
+const updateRoomQuantity = (room, qty) => {
+    const quantity = parseInt(qty) || 0;
+    const index = selectedRooms.value.findIndex(item => item.room.id_kamar === room.id_kamar);
+    
+    if (quantity > 0 && quantity <= room.sisa_kamar) {
+        if (index >= 0) {
+            selectedRooms.value[index].qty = quantity;
+        } else {
+            selectedRooms.value.push({ room, qty: quantity });
+        }
+    } else if (quantity === 0 && index >= 0) {
+        selectedRooms.value.splice(index, 1);
+    }
+};
+
+// Increment room quantity (for stepper +)
+const incrementRoom = (room) => {
+    const currentQty = getRoomQuantity(room);
+    if (currentQty < room.sisa_kamar) {
+        updateRoomQuantity(room, currentQty + 1);
+    }
+};
+
+// Decrement room quantity (for stepper -)
+const decrementRoom = (room) => {
+    const currentQty = getRoomQuantity(room);
+    if (currentQty > 0) {
+        updateRoomQuantity(room, currentQty - 1);
+    }
+};
+
+// Toggle room selection
+const toggleRoom = (room) => {
+    const index = selectedRooms.value.findIndex(item => item.room.id_kamar === room.id_kamar);
+    if (index >= 0) {
+        selectedRooms.value.splice(index, 1);
+    } else {
+        selectedRooms.value.push({ room, qty: 1 });
+    }
+};
+
+// Remove room from selection
+const removeRoom = (room) => {
+    const index = selectedRooms.value.findIndex(item => item.room.id_kamar === room.id_kamar);
+    if (index >= 0) {
+        selectedRooms.value.splice(index, 1);
+    }
+};
+
 // 1. Cek Ketersediaan (GET)
 const checkAvailability = async () => {
-    if (!form.value.check_in || form.value.durasi < 1) {
-        showSnackbar('error', 'Mohon isi tanggal dan durasi dengan benar');
+    if (!form.value.check_in || !form.value.check_out || durasi.value < 1) {
+        showSnackbar('error', 'Mohon isi tanggal check-in dan check-out dengan benar');
         return;
     }
 
     loading.value = true;
-    selectedRoom.value = null; // Reset pilihan jika cek ulang
+    selectedRooms.value = []; // Reset pilihan jika cek ulang
 
     try {
-        // PENTING: Gunakan params untuk GET request
         const response = await axios.get('/cek-ketersediaan', {
             params: {
                 check_in: form.value.check_in,
-                check_out: calculatedCheckOut.value // Kirim tgl checkout hasil hitungan
+                check_out: form.value.check_out
             }
         });
         
@@ -293,41 +431,37 @@ const checkAvailability = async () => {
     }
 };
 
-// 2. Pilih Kamar
-const selectRoom = (room) => {
-    selectedRoom.value = room;
-    // Scroll otomatis ke bawah agar admin melihat form tamu
-    setTimeout(() => {
-        window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
-    }, 100);
-};
-
-// 3. Submit Walk-in (POST)
+// 2. Submit Walk-in (POST)
 const submitWalkIn = async () => {
     if (!form.value.nama_pemesan || !form.value.no_hp) {
         showSnackbar('error', 'Nama dan No HP Tamu wajib diisi!');
         return;
     }
 
+    if (selectedRooms.value.length === 0) {
+        showSnackbar('error', 'Pilih minimal satu kamar!');
+        return;
+    }
+
     processing.value = true;
 
     try {
-        // Payload sesuai Controller storeOffline
+        // Payload sesuai Controller storeOffline yang baru (array kamars)
         const payload = {
             nama_pemesan: form.value.nama_pemesan,
             no_hp: form.value.no_hp,
-            kamar_id: selectedRoom.value.id_kamar, // atau id_kamar
             check_in_date: form.value.check_in,
-            durasi: parseInt(form.value.durasi),
-            jumlah_kamar: parseInt(form.value.jumlah_kamar)
+            durasi: durasi.value,
+            kamars: selectedRooms.value.map(item => ({
+                kamar_id: item.room.id_kamar,
+                jumlah_kamar: item.qty
+            }))
         };
 
         const response = await axios.post('/admin/pemesanan-offline', payload);
 
         if (response.success) {
-            showSnackbar('success', response.message || 'Check-in Berhasil! Transaksi tersimpan.');
-            
-            // Reset Form setelah sukses
+            showSnackbar('success', response.message || 'Transaksi berhasil!');
             resetForm();
         }
     } catch (error) {
@@ -340,27 +474,22 @@ const submitWalkIn = async () => {
 };
 
 const resetForm = () => {
-    selectedRoom.value = null;
+    selectedRooms.value = [];
     rooms.value = [];
     form.value.nama_pemesan = '';
     form.value.no_hp = '';
-    // Tanggal tidak direset agar admin bisa input tamu berikutnya dengan cepat
 };
 
 const showSnackbar = (color, text) => {
     snackbar.value = { show: true, color, text };
 };
 
-const minDate = computed(() => {
-    return new Date().toLocaleDateString('en-CA');
-});
-// Helper Format Rupiah
 const formatRupiah = (val) => {
     return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(val);
 };
 </script>
 <style scoped>
 .border-primary {
-    border: 2px solid #1976D2 !important; /* Sesuaikan warna primary */
+    border: 2px solid #1976D2 !important;
 }
 </style>

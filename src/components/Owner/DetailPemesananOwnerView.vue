@@ -63,7 +63,7 @@
             <v-card-text class="pa-6">
                 <v-row>
                     <v-col cols="12" md="6">
-                        <div class="d-flex align-center mb-4">
+                        <div class="d-flex text-start mb-4">
                             <v-avatar color="primary" variant="tonal" class="mr-3">
                                 <v-icon>mdi-account</v-icon>
                             </v-avatar>
@@ -71,6 +71,10 @@
                                 <div class="text-subtitle-2 text-grey">Tamu</div>
                                 <div class="text-body-1 font-weight-medium">{{ pesanan.user.name }}</div>
                                 <div class="text-caption">{{ pesanan.user.email }}</div>
+                                <div v-if="pesanan.user.no_hp" class="text-caption d-flex align-center">
+                                    <v-icon size="x-small" class="mr-1">mdi-phone</v-icon>
+                                    {{ pesanan.user.no_hp }}
+                                </div>
                             </div>
                         </div>
                     </v-col>
@@ -78,7 +82,7 @@
                     <v-divider vertical class="d-none d-md-flex mx-4" inset></v-divider>
 
                     <v-col cols="12" md="5">
-                         <div class="d-flex align-center mb-4">
+                         <div class="d-flex text-start mb-4">
                             <v-avatar color="info" variant="tonal" class="mr-3">
                                 <v-icon>mdi-calendar-range</v-icon>
                             </v-avatar>
@@ -121,6 +125,7 @@
                                     <th class="text-left text-caption font-weight-bold text-uppercase text-grey-darken-1">Status</th>
                                     <th class="text-center text-caption font-weight-bold text-uppercase text-grey-darken-1">Check In</th>
                                     <th class="text-center text-caption font-weight-bold text-uppercase text-grey-darken-1">Check Out</th>
+                                    <th class="text-left text-caption font-weight-bold text-uppercase text-grey-darken-1">Catatan</th>
                                     <th class="text-right text-caption font-weight-bold text-uppercase text-grey-darken-1 pr-6">Aksi</th>
                                 </tr>
                             </thead>
@@ -140,6 +145,10 @@
                                     </td>
                                     <td class="text-center text-caption">{{ placement.check_in_aktual ? formatTime(placement.check_in_aktual) : '-' }}</td>
                                     <td class="text-center text-caption">{{ placement.check_out_aktual ? formatTime(placement.check_out_aktual) : '-' }}</td>
+                                    <td class="text-left text-caption" style="max-width: 150px;">
+                                        <span v-if="placement.catatan" class="text-grey-darken-2">{{ placement.catatan }}</span>
+                                        <span v-else class="text-grey-lighten-1 font-italic">-</span>
+                                    </td>
                                     <td class="text-right pr-6">
                                         <div class="d-flex justify-end gap-2">
                                             <!-- Tombol Check Out -->
@@ -216,7 +225,7 @@
 
         <!-- Rincian Biaya Bottom -->
         <v-card elevation="0" class="mt-8 bg-grey-lighten-4 rounded-lg border-dashed">
-             <v-card-text class="d-flex justify-space-between align-center pa-6">
+             <v-card-text class="d-flex justify-space-between text-start pa-6">
                  <div>
                     <div class="text-h6 font-weight-bold text-grey-darken-3">Total Tagihan</div>
                     <div class="text-caption text-grey">Sudah termasuk pajak & biaya layanan</div>
@@ -329,7 +338,7 @@
 
                 <v-checkbox
                     v-model="markAsMaintenance"
-                    label="Tandai unit lama sebagai 'Maintenance' (Rusak)?"
+                    label="Tandai unit lama sebagai 'Maintenance' (Rusak/Perlu Perbaikan)?"
                     density="compact"
                     color="error"
                 ></v-checkbox>
@@ -345,6 +354,44 @@
                     :disabled="!newUnitId"
                 >
                     Simpan Perubahan
+                </v-btn>
+            </v-card-actions>
+        </v-card>
+    </v-dialog>
+
+    <!-- Dialog Check-in dengan Catatan -->
+    <v-dialog v-model="checkInDialog" max-width="500">
+        <v-card>
+            <v-card-title class="text-h6 bg-primary text-white d-flex align-center">
+                <v-icon start class="mr-2">mdi-login</v-icon>
+                Konfirmasi Check-in
+            </v-card-title>
+            <v-card-text class="pt-4">
+                <v-alert type="info" variant="tonal" density="compact" class="mb-4">
+                    Tamu akan di-check-in ke unit <strong>{{ checkInTarget.unitLabel }}</strong>.
+                </v-alert>
+                <v-textarea
+                    v-model="checkInCatatan"
+                    label="Catatan Check-in (Opsional)"
+                    placeholder="Contoh: Tamu request extra bantal, late check-in, dll."
+                    variant="outlined"
+                    rows="3"
+                    counter="500"
+                    maxlength="500"
+                    persistent-counter
+                ></v-textarea>
+            </v-card-text>
+            <v-card-actions>
+                <v-spacer></v-spacer>
+                <v-btn variant="text" @click="checkInDialog = false">Batal</v-btn>
+                <v-btn 
+                    color="primary" 
+                    variant="flat" 
+                    @click="confirmCheckIn" 
+                    :loading="checkingIn"
+                    prepend-icon="mdi-login"
+                >
+                    Proses Check-in
                 </v-btn>
             </v-card-actions>
         </v-card>
@@ -393,6 +440,12 @@ const loadingUnits = ref(false);
 const swapping = ref(false);
 const roomTypes = ref([]); // List semua tipe kamar
 const selectedRoomTypeId = ref(null); // Tipe kamar yang dipilih untuk swap
+
+// State Check-in Dialog
+const checkInDialog = ref(false);
+const checkInCatatan = ref('');
+const checkingIn = ref(false);
+const checkInTarget = ref({ detailId: null, unitId: null, placementId: null, unitLabel: '' });
 
 // 1. Fetch Detail Pesanan
 const fetchPesanan = async () => {
@@ -498,7 +551,7 @@ const confirmGantiUnit = async () => {
         const response = await apiClient.post('/admin/ganti-unit', {
             penempatan_id: selectedPlacement.value.id,
             new_kamar_unit_id: newUnitId.value,
-            old_unit_status: markAsMaintenance.value ? 'maintenance' : 'available'
+            old_unit_status: markAsMaintenance.value ? 'maintenance' : 'kotor'
         });
 
         if (response.success) {
@@ -517,19 +570,40 @@ const confirmGantiUnit = async () => {
 
 
 
-// 3.5 Action Check In (Existing Pending Unit)
-const handlePendingCheckIn = async (detailId, unitId, placementId) => {
-    if(!confirm("Konfirmasi tamu masuk (Check-in) ke unit ini?")) return;
-    
+// 3.5 Action Check In (Existing Pending Unit) - Buka Dialog
+const handlePendingCheckIn = (detailId, unitId, placementId) => {
+    // Cari label unit untuk ditampilkan di dialog
+    let unitLabel = '';
+    if (pesanan.value?.detail_pemesanans) {
+        for (const detail of pesanan.value.detail_pemesanans) {
+            const placement = detail.penempatan_kamars?.find(p => p.id === placementId);
+            if (placement) {
+                unitLabel = placement.kamar_unit?.nomor_unit || '';
+                break;
+            }
+        }
+    }
+
+    checkInTarget.value = { detailId, unitId, placementId, unitLabel };
+    checkInCatatan.value = '';
+    checkInDialog.value = true;
+};
+
+// Konfirmasi Check-in dari Dialog
+const confirmCheckIn = async () => {
+    const { detailId, unitId, placementId } = checkInTarget.value;
+    checkingIn.value = true;
     loadingAction.value = placementId;
     try {
         const response = await apiClient.post('/admin/check-in', {
             detail_pemesanan_id: detailId,
-            kamar_unit_id: unitId
+            kamar_unit_id: unitId,
+            catatan: checkInCatatan.value || null
         });
         
         if (response.success) {
             showSnackbar('success', response.message || 'Berhasil Check-in!');
+            checkInDialog.value = false;
             await fetchPesanan();
         } else {
             showSnackbar('error', response.message || 'Gagal Check-in');
@@ -537,13 +611,14 @@ const handlePendingCheckIn = async (detailId, unitId, placementId) => {
     } catch (err) {
         showSnackbar('error', err.response?.data?.message || 'Gagal Check-in');
     } finally {
+        checkingIn.value = false;
         loadingAction.value = null;
     }
 };
 
 // 4. Action Check Out
 const handleCheckOut = async (penempatanId) => {
-    if(!confirm("Konfirmasi tamu keluar (Check-out) ? Unit akan diset MAINTENANCE.")) return;
+    if(!confirm("Konfirmasi tamu keluar (Check-out) ? Unit akan diset KOTOR dan perlu dibersihkan.")) return;
 
     loadingAction.value = penempatanId;
     try {

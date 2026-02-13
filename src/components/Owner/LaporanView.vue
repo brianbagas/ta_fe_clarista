@@ -1,6 +1,6 @@
 <template>
   <v-container>
-    <h2 class="mb-4">Laporan Pendapatan</h2>
+    <h2 class="mb-4 text-left text-h4">Laporan Pendapatan</h2>
 
     <v-row class="mb-4">
       <v-col cols="12" md="4">
@@ -100,10 +100,16 @@ export default {
       loading: false,
       loadingPdf: false,
       laporan: null,
-      filter: {
-        startDate: new Date(new Date().getFullYear(), new Date().getMonth(), 2).toISOString().substring(0, 10), // Default Awal Bulan
-        endDate: new Date().toISOString().substring(0, 10), // Default Hari Ini
-      },
+      filter: (() => {
+        const now = new Date();
+        const y = now.getFullYear();
+        const m = String(now.getMonth() + 1).padStart(2, '0');
+        const d = String(now.getDate()).padStart(2, '0');
+        return {
+          startDate: `${y}-${m}-01`, // Tanggal 1 bulan ini (local time, tanpa konversi UTC)
+          endDate: `${y}-${m}-${d}`, // Hari ini (local time)
+        };
+      })(),
       headers: [
         { title: 'Kode Booking', key: 'kode_booking' },
         { title: 'Nama Tamu', key: 'user.name' },

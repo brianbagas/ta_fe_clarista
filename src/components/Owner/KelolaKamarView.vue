@@ -1,6 +1,6 @@
 <template>
   <v-container fluid class="pa-6">
-    <div class="d-flex justify-space-between align-center mb-6">
+    <div class="d-flex justify-space-between text-left mb-6">
       <div>
         <h1 class="text-h4 font-weight-bold text-primary">Manajemen Kamar</h1>
         <p class="text-subtitle-1 text-medium-emphasis">Kelola tipe kamar, harga, dan ketersediaan homestay.</p>
@@ -105,6 +105,54 @@
         </v-hover>
       </v-col>
     </v-row>
+
+    <!-- Section Daftar Kamar Kotor -->
+    <div v-if="dirtyUnits.length > 0" class="mt-8 mb-4 text-left">
+      <v-divider class="mb-6"></v-divider>
+      <h2 class="text-h5 font-weight-bold text-error mb-2 d-flex align-center">
+        <v-icon icon="mdi-broom" class="mr-2"></v-icon>
+        Daftar Kamar Kotor (Perlu Dibersihkan)
+      </h2>
+      <p class="text-subtitle-2 text-medium-emphasis mb-4">Unit kamar di bawah ini berstatus kotor dan belum siap untuk check-in.</p>
+      
+      <v-card variant="flat" class="border" rounded="lg">
+        <v-table>
+          <thead>
+            <tr class="bg-grey-lighten-4">
+              <th class="text-left font-weight-bold">Nomor Unit</th>
+              <th class="text-left font-weight-bold">Tipe Kamar</th>
+              <th class="text-left font-weight-bold">Status Saat Ini</th>
+              <th class="text-left font-weight-bold">Terakhir Update</th>
+              <th class="text-right font-weight-bold">Aksi</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="unit in dirtyUnits" :key="unit.id">
+              <td class="font-weight-bold text-body-1">{{ unit.nomor_unit }}</td>
+              <td>{{ unit.kamar?.tipe_kamar || 'Unknown' }}</td>
+              <td>
+                <v-chip color="error" variant="flat" size="small" class="text-uppercase font-weight-bold">
+                  {{ unit.status_unit }}
+                </v-chip>
+              </td>
+              <td class="text-grey-darken-1">{{ new Date(unit.updated_at).toLocaleString('id-ID') }}</td>
+              <td class="text-right">
+                <v-btn
+                  color="success"
+                  size="small"
+                  variant="flat"
+                  prepend-icon="mdi-check-circle"
+                  @click="markAsClean(unit.id)"
+                  :loading="loadingAction === unit.id"
+                >
+                  Sudah Dibersihkan
+                </v-btn>
+              </td>
+            </tr>
+          </tbody>
+        </v-table>
+      </v-card>
+    </div>
 
     <v-dialog v-model="dialog" persistent max-width="600px">
       <v-card class="rounded-lg">
@@ -265,7 +313,9 @@ import ManageKamarUnitsView from './ManageKamarUnitsView.vue'; // Import compone
 
 // State
 const kamars = ref([]);
+const dirtyUnits = ref([]); // State untuk daftar kamar kotor
 const loading = ref(true);
+const loadingAction = ref(null); // Untuk loading button per row
 const error = ref(null);
 const saving = ref(false); // Loading state saat simpan
 const deleting = ref(false); // Loading state saat hapus
@@ -327,6 +377,42 @@ const fetchKamars = async () => {
     console.error(err);
   } finally {
     loading.value = false;
+  }
+};
+
+const fetchDirtyUnits = async () => {
+  try {
+    const response = await apiClient.get('/admin/kamar-dirty');
+    if (response.success) {
+      dirtyUnits.value = response.data;
+    }
+  } catch (err) {
+    console.error('Gagal memuat data kamar kotor:', err);
+  }
+};
+
+const markAsClean = async (unitId) => {
+  loadingAction.value = unitId;
+  try {
+    const response = await apiClient.put(`/admin/kamar-units/${unitId}`, {
+      // Endpoint ini mengharapkan logika setAvailable
+      // Berdasarkan PenempatanKamarController::setAvailable
+    });
+    
+    if (response.success) {
+      showNotification('Status kamar berhasil diperbarui menjadi Available', 'success');
+      // Refresh list
+      await fetchDirtyUnits();
+      // Optional: Refresh list kamar utama juga kalau status available mempengaruhi count
+      await fetchKamars();
+    } else {
+       showNotification(response.message || 'Gagal mengubah status kamar.', 'error');
+    }
+  } catch (err) {
+    console.error('Gagal update status:', err);
+    showNotification(err.response?.data?.message || 'Gagal mengubah status kamar.', 'error');
+  } finally {
+    loadingAction.value = null;
   }
 };
 
@@ -461,7 +547,10 @@ const closeDialog = () => {
   if(form.value) form.value.resetValidation();
 };
 
-onMounted(fetchKamars);
+onMounted(() => {
+  fetchKamars();
+  fetchDirtyUnits();
+});
 </script>
 
 <script>

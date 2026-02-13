@@ -1,6 +1,6 @@
 <template>
   <v-container>
-    <h1 class="text-h4 mb-4">Manajemen Halaman Publik</h1>
+    <h1 class="text-h4 mb-4 text-left">Manajemen Halaman Publik</h1>
 
     <v-card>
       <v-tabs v-model="tab" bg-color="primary">
@@ -64,7 +64,7 @@
 
           <!-- TAB REKENING BANK -->
           <v-window-item value="bank">
-             <div class="d-flex justify-space-between align-center mb-4">
+             <div class="d-flex justify-space-between text-left mb-4">
                 <h3 class="text-h6">Daftar Rekening Bank</h3>
                 <v-btn color="primary" prepend-icon="mdi-plus" @click="openBankDialog()">Tambah Bank</v-btn>
              </div>
@@ -79,7 +79,7 @@
                         <th class="text-left">Aksi</th>
                     </tr>
                 </thead>
-                <tbody>
+                <tbody class="text-left">
                     <tr v-for="bank in bankList" :key="bank.id">
                         <td>{{ bank.nama_bank }}</td>
                         <td>{{ bank.nomor_rekening }}</td>

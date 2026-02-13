@@ -18,6 +18,7 @@ import CreateReviewView from '../components/Customer/CreateReviewView.vue';
 import ReviewManagementView from '../components/Owner/ReviewManagementView.vue';
 import PromoManagementView from '../components/Owner/PromoManagementView.vue';
 import LaporanView from '../components/Owner/LaporanView.vue';
+import HapusDataView from '../components/Owner/HapusDataView.vue';
 import DashboardOwnerView from '../components/Owner/DashboardOwnerView.vue';
 import NotFoundView from '../components/NotFoundView.vue';
 import StoreOfflineView from '../components/Owner/StoreOfflineView.vue';
@@ -135,6 +136,12 @@ const routes = [
     name: 'KelolaReview',
     component: ReviewManagementView,
     meta: { requiresAuth: true }
+  },
+  {
+    path: '/admin/hapus-data',
+    name: 'HapusData',
+    component: HapusDataView,
+    meta: { requiresAuth: true, role: 'owner' }
   },
   {
     path: '/:pathMatch(.*)*',

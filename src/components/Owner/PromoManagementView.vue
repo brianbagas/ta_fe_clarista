@@ -3,7 +3,7 @@
   >
     <v-card class="elevation-2 ">
       <v-toolbar flat>
-        <v-toolbar-title >Management Promo</v-toolbar-title>
+        <v-toolbar-title class="text-left text-h4 font-weight-bold">Management Promo</v-toolbar-title>
         <v-divider class="mx-4" inset vertical></v-divider>
         <v-spacer></v-spacer>
         
@@ -337,23 +337,34 @@ const openEditDialog = (item) => {
   dialog.value = true;
 };
 const openDeleteDialog = (item) => {
+  editedIndex.value = promos.value.indexOf(item);
+  Object.assign(editedItem, item);
   dialogDelete.value = true;
 };
 
 const closeDialog = () => {
   dialog.value = false;
   dialogDelete.value = false;
+  nextTick(() => {
+    Object.assign(editedItem, defaultItem);
+    editedIndex.value = -1;
+  });
 };
-const deleteItemApi = async (id) => {
+
+const deleteItemApi = async () => {
     errorMessage.value = '';
+    const id = editedItem.id;
+    if (!id) return;
+
     try {
         // Logika DELETE
         await apiClient.delete(`${API_URL}/${id}`);
-        promos.value.splice(editedIndex.value, 1);
+        // promos.value.splice(editedIndex.value, 1); // Opsional: hapus manual
+        await fetchPromos(); // Refresh data supaya status sinkron
+        dialogDelete.value = false;
     } catch (error) {
         console.error('Error deleting data:', error.response || error);
         errorMessage.value = 'Gagal menghapus promo: ' + (error.response?.data?.message || 'Terjadi kesalahan server.');
-        throw error;
     }
 };
 onMounted(fetchPromos);

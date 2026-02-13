@@ -139,14 +139,7 @@
                     </v-col>
                 </v-row>
 
-                <v-text-field
-                  v-model="form.tanggal_bayar"
-                  label="Tanggal Bayar"
-                  type="date"
-                  variant="outlined"
-                  :rules="[rules.required]"
-                  class="mb-3"
-                ></v-text-field>
+
 
                 <v-file-input
                   @change="onFileChange"
@@ -251,7 +244,6 @@ const form = reactive({
     jumlah_bayar: '',
     bank_tujuan: '', 
     nama_pengirim: '',
-    tanggal_bayar: new Date().toISOString().substring(0, 10) // Default today
 });
 
 const rules = {
@@ -360,7 +352,6 @@ const handleUpload = async () => {
     formData.append('jumlah_bayar', form.jumlah_bayar);
     formData.append('bank_tujuan', form.bank_tujuan);
     formData.append('nama_pengirim', form.nama_pengirim);
-    formData.append('tanggal_bayar', form.tanggal_bayar);
 
   try {
     const response = await apiClient.post(`/pemesanan/${pesananId}/pembayaran`, formData, {

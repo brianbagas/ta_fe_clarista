@@ -8,7 +8,7 @@ export default defineConfig({
     vue(),
     vueDevTools(),
   ],
-    server: { // <-- Tambahkan bagian ini
+  server: { // <-- Tambahkan bagian ini
     host: true // atau '0.0.0.0'
   }
 });

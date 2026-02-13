@@ -55,6 +55,7 @@
                        style="height: 40px; cursor: pointer;">
                     
                      <span v-if="getCellStatus(room.id, date) === 'booked'" class="small">★</span>
+                     <span v-if="getCellStatus(room.id, date) === 'kotor'" class="small">🧹</span>
                      <span v-if="getCellStatus(room.id, date) === 'maintenance'" class="small">🛠</span>
                   </div>
                 </td>
@@ -78,6 +79,9 @@
           </div>
           <div class="d-flex align-items-center">
             <div class="box me-2 bg-success"></div> Terisi (Ada Tamu)
+          </div>
+          <div class="d-flex align-items-center">
+            <div class="box me-2" style="background-color: #FF9800;"></div> Kotor
           </div>
           <div class="d-flex align-items-center">
             <div class="box me-2 bg-secondary"></div> Maintenance
@@ -185,11 +189,11 @@ export default {
       if (booking) return 'booked';
 
       const room = this.rooms.find(r => r.id === roomId);
-      if (room && room.status_unit === 'maintenance') {
+      if (room && (room.status_unit === 'kotor' || room.status_unit === 'maintenance')) {
          const d = new Date();
          const offset = d.getTimezoneOffset() * 60000;
          const today = (new Date(d - offset)).toISOString().split('T')[0];
-         if(dateStr >= today) return 'maintenance';
+         if(dateStr >= today) return room.status_unit;
       }
 
       return 'available';
@@ -201,6 +205,9 @@ export default {
       if (status === 'booked') {
         return 'bg-success text-white'; // HIJAU (Tamu)
       } 
+      if (status === 'kotor') {
+        return 'bg-kotor text-white'; // ORANYE (Kotor)
+      }
       if (status === 'maintenance') {
         return 'bg-secondary text-white'; // ABU-ABU (Rusak)
       }
@@ -269,5 +276,8 @@ table {
 th, td {
     border: 1px solid #dee2e6;
     vertical-align: middle;
+}
+.bg-kotor {
+    background-color: #FF9800 !important;
 }
 </style>

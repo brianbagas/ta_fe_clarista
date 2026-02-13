@@ -55,7 +55,7 @@
                 variant="text" 
                 color="warning" 
                 class="px-0 mt-2"
-                to="/admin/verifikasi-pembayaran"
+                to="/admin/pesanan"
               >
                 Cek Sekarang >
               </v-btn>
@@ -103,14 +103,14 @@
       <v-row class="mt-2">
         <v-col cols="12" md="8">
           <v-card elevation="2" class="rounded-lg">
-            <v-card-title class="font-weight-bold">Statistik Pemesanan (Manual Chart)</v-card-title>
+            <v-card-title class="font-weight-bold">Pemesanan Bulan Ini</v-card-title>
             <v-card-text>
-              <p class="text-caption mb-4">Perbandingan status pesanan saat ini:</p>
+              <p class="text-caption mb-4">Perbandingan status pesanan saat ini (dari {{ stats.totalBookings }} total pesanan):</p>
               
               <div class="mb-3">
                 <div class="d-flex justify-space-between mb-1">
                   <span class="text-body-2 font-weight-medium">Lunas / Selesai</span>
-                  <span class="text-caption">{{ stats.lunasCount }} Pesanan</span>
+                  <span class="text-caption font-weight-bold">{{ stats.lunasCount }} dari {{ stats.totalBookings }} ({{ Math.round((stats.lunasCount / stats.totalBookings) * 100) }}%)</span>
                 </div>
                 <v-progress-linear
                   :model-value="(stats.lunasCount / stats.totalBookings) * 100"
@@ -125,10 +125,10 @@
               <div class="mb-3">
                 <div class="d-flex justify-space-between mb-1">
                   <span class="text-body-2 font-weight-medium">Menunggu Verifikasi</span>
-                  <span class="text-caption">{{ stats.pendingCount }} Pesanan</span>
+                  <span class="text-caption font-weight-bold">{{ stats.chartPendingCount }} dari {{ stats.totalBookings }} ({{ stats.totalBookings ? Math.round((stats.chartPendingCount / stats.totalBookings) * 100) : 0 }}%)</span>
                 </div>
                 <v-progress-linear
-                  :model-value="(stats.pendingCount / stats.totalBookings) * 100"
+                  :model-value="stats.totalBookings ? (stats.chartPendingCount / stats.totalBookings) * 100 : 0"
                   color="warning"
                   height="20"
                   rounded
@@ -138,14 +138,28 @@
 
                <div class="mb-3">
                 <div class="d-flex justify-space-between mb-1">
-                  <span class="text-body-2 font-weight-medium">Belum Bayar (Baru)</span>
-                  <span class="text-caption">{{ stats.newCount }} Pesanan</span>
+                  <span class="text-body-2 font-weight-medium">Belum Bayar</span>
+                  <span class="text-caption font-weight-bold">{{ stats.newCount }} dari {{ stats.totalBookings }} ({{ Math.round((stats.newCount / stats.totalBookings) * 100) }}%)</span>
                 </div>
                 <v-progress-linear
                   :model-value="(stats.newCount / stats.totalBookings) * 100"
                   color="info"
                   height="20"
                   rounded
+                ></v-progress-linear>
+              </div>
+
+               <div class="mb-3">
+                <div class="d-flex justify-space-between mb-1">
+                  <span class="text-body-2 font-weight-medium">Dibatalkan</span>
+                  <span class="text-caption font-weight-bold">{{ stats.cancelledCount }} dari {{ stats.totalBookings }} ({{ stats.totalBookings ? Math.round((stats.cancelledCount / stats.totalBookings) * 100) : 0 }}%)</span>
+                </div>
+                <v-progress-linear
+                  :model-value="stats.totalBookings ? (stats.cancelledCount / stats.totalBookings) * 100 : 0"
+                  color="error"
+                  height="20"
+                  rounded
+                  striped
                 ></v-progress-linear>
               </div>
 
@@ -167,7 +181,7 @@
         </v-col>
       </v-row>
 
-      <v-row class="mt-2">
+      <v-row class="mt-2 text-left">
         <v-col cols="12">
           <v-card elevation="2" class="rounded-lg">
             <div class="d-flex justify-space-between align-center pa-4">
@@ -217,7 +231,11 @@ const stats = ref({
   lunasCount: 0,
   totalBookings: 0,
   activeRooms: 0,
-  pesananBatal: 0
+  pesananBatal: 0,
+  cancelledCount: 0,
+  chartPendingCount: 0,
+  currentMonthName: '',
+  currentYear: ''
 });
 
 // Polling State
@@ -272,58 +290,43 @@ const fetchDashboardData = async () => {
   try {
     loading.value = true;
     
-    // 1. Panggil API Pesanan
-    const response = await axios.get('/admin/pemesanan', {
+    // 1. Panggil API Pesanan (Hanya untuk tabel Pesanan Terbaru)
+    // Kita bisa optimasi endpoint ini nanti jika perlu paging, tapi sekarang ambil saja untuk list bawah
+    const responseRecent = await axios.get('/admin/pemesanan', {
       headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
     });
 
-    if (response.success) {
-      const allData = response.data;
-      
+    if (responseRecent.success) {
       // Simpan untuk tabel (ambil 5 teratas)
-      recentBookings.value = allData.slice(0, 5);
+      recentBookings.value = responseRecent.data.slice(0, 5);
+    }
 
-      // 2. HITUNG STATISTIK CLIENT-SIDE
-      const now = new Date();
-      const currentMonth = now.getMonth();
-      const currentYear = now.getFullYear();
+    // 2. Ambil Statistik Dashboard dari Server (Centralized Logic)
+    const responseStats = await axios.get('/admin/dashboard-stats', {
+       headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+    });
 
-      // Hitung TOTAL BOOKING (Semua yang tidak batal)
-      const validBookings = allData.filter(item => item.status_pemesanan !== 'batal');
-      stats.value.totalBookings = validBookings.length;
-      // Hitung Pesanan BARU (Belum Bayar)
-      const pendingBayar = allData.filter(item => item.status_pemesanan === 'menunggu_pembayaran');
-      stats.value.newCount = pendingBayar.length;
+    if (responseStats.success) {
+        const data = responseStats.data;
+        
+        // Map response ke state
+        stats.value.incomeMonth = data.income_month;
+        stats.value.lunasCount = data.lunas_count; // Based on Payment Date match
+        
+        stats.value.totalBookings = data.total_bookings; // Based on Created Date
+        stats.value.cancelledCount = data.cancelled_count;
+        stats.value.newCount = data.new_count;
+        stats.value.chartPendingCount = data.pending_verif_month;
+        
+        stats.value.pendingCount = data.pending_count; // Global pending
+        stats.value.activeRooms = data.active_rooms;
 
-      // Hitung Pesanan LUNAS (Total Lunas Sepanjang Waktu untuk Chart)
-      const lunas = allData.filter(item => item.status_pemesanan === 'dikonfimrasi' || item.status_pemesanan === 'selesai');
-      stats.value.lunasCount = lunas.length;
-
-      // Hitung TOTAL PENDAPATAN (Hanya Lunas/Selesai di BULAN INI)
-      const incomeThisMonth = lunas.filter(item => {
-          const checkIn = new Date(item.tanggal_check_in);
-          return checkIn.getMonth() === currentMonth && checkIn.getFullYear() === currentYear;
-      });
-
-      stats.value.incomeMonth = incomeThisMonth.reduce((acc, curr) => acc + parseInt(curr.total_bayar), 0);
-      
-// stats.value.activeRooms = Math.floor(Math.random() * 5); // Dummy removed
+        stats.value.currentMonthName = data.period_label; // "Februari 2026"
     }
     
-    // Panggil notifikasi count juga saat load awal agar sinkron
-    await fetchNotificationCount();
-
-    // 3. FETCH REALTIME DASHBOARD STATS (Active Rooms)
-    try {
-        const statsResponse = await axios.get('/admin/dashboard-stats', {
-           headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
-        });
-        if(statsResponse.success) {
-           stats.value.activeRooms = statsResponse.data.active_rooms;
-        }
-    } catch (e) {
-        console.error("Gagal load stats dashboard", e);
-    }
+    // Panggil notifikasi count juga saat load awal agar sinkron (optional, karena sudah ada di dashboard-stats)
+    // Tapi endpoint /notifikasi mungkin lebih real-time atau spesifik, jadi kita biarkan jika perlu
+    // await fetchNotificationCount(); 
 
   } catch (error) {
     console.error("Gagal ambil data dashboard", error);
