@@ -110,8 +110,10 @@
                   label="Nilai Diskon"
                   type="number"
                   variant="outlined"
+                  :max="editedItem.tipe_diskon === 'persen' ? 100 : null"
                   :prefix="editedItem.tipe_diskon === 'nominal' ? 'Rp' : ''"
                   :suffix="editedItem.tipe_diskon === 'persen' ? '%' : ''"
+                  @input="editedItem.tipe_diskon === 'persen' && editedItem.nilai_diskon > 100 ? editedItem.nilai_diskon = 100 : null"
                 ></v-text-field>
               </v-col>
               <v-col cols="12" sm="6">
@@ -226,9 +228,6 @@ const formatRupiah = (value) => {
 const formTitle = computed(() =>
   editedIndex.value === -1 ? 'Tambah Promo' : 'Edit Promo'
 );
-
-// ... (Definisi Headers, defaultItem, editedItem, formTitle, dan formatRupiah tetap sama) ...
-// (Saya hilangkan untuk keringkasan, tetapi pastikan kode ini ada di bagian atas Anda)
 const headers = [
     { title: 'Nama Promo', key: 'nama_promo' },
     { title: 'Kode Promo', key: 'kode_promo' },
@@ -253,6 +252,12 @@ const formatDate = (dateString) => {
   });
 };
 
+const getLocalDateString = () => {
+  const d = new Date();
+  d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
+  return d.toISOString().substring(0, 10);
+};
+
 const defaultItem = {
     id: null,
     nama_promo: '',
@@ -264,8 +269,8 @@ const defaultItem = {
     kuota: null,
     kuota_terpakai: 0,
     is_active: true,
-    berlaku_mulai: new Date().toISOString().substring(0, 10),
-    berlaku_selesai: new Date().toISOString().substring(0, 10),
+    berlaku_mulai: getLocalDateString(),
+    berlaku_selesai: getLocalDateString(),
 };
 const editedItem = reactive({ ...defaultItem });
 
@@ -274,10 +279,8 @@ const fetchPromos = async () => {
     errorMessage.value = '';
      console.log('Error details:');
     try {
-        // TIDAK PERLU HEADER OTENTIKASI MANUAL KARENA SUDAH ADA INTERCEPTOR!
         const response = await apiClient.get(API_URL);
         console.log('Error details 2:');
-        // Data promo ada di response.data (karena interceptor di axios.js sudah meng-unwrap response.data level axios)
         promos.value = response.data;
     } catch (error) {
       console.log('Error details 3:');
@@ -323,7 +326,21 @@ const openAddDialog = () => {
   isEditing.value = false;
   editedIndex.value = -1;
   Object.assign(editedItem, defaultItem);
+  // Pastikan tanggal saat add selalu up to date (jika page dibuka melewati tengah malam)
+  editedItem.berlaku_mulai = getLocalDateString();
+  editedItem.berlaku_selesai = getLocalDateString();
   dialog.value = true;
+};
+
+const getLocalDateFromIso = (isoString) => {
+  if (!isoString) return '';
+  // Jika formatnya sudah YYYY-MM-DD aman langsung di-slice, jika format ISO tangani timezone
+  if (isoString.includes('T')) {
+    const d = new Date(isoString);
+    d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
+    return d.toISOString().substring(0, 10);
+  }
+  return String(isoString).substring(0, 10);
 };
 
 const openEditDialog = (item) => {
@@ -333,13 +350,9 @@ const openEditDialog = (item) => {
   // Create a copy of the item
   const itemToEdit = { ...item };
   
-  // Format dates to YYYY-MM-DD for input type="date"
-  if (itemToEdit.berlaku_mulai) {
-    itemToEdit.berlaku_mulai = new Date(itemToEdit.berlaku_mulai).toISOString().substring(0, 10);
-  }
-  if (itemToEdit.berlaku_selesai) {
-    itemToEdit.berlaku_selesai = new Date(itemToEdit.berlaku_selesai).toISOString().substring(0, 10);
-  }
+  // Tangani parser tanggal lokal tanpa mengubah hari ke waktu UTC
+  itemToEdit.berlaku_mulai = getLocalDateFromIso(itemToEdit.berlaku_mulai);
+  itemToEdit.berlaku_selesai = getLocalDateFromIso(itemToEdit.berlaku_selesai);
 
   Object.assign(editedItem, itemToEdit);
   dialog.value = true;
