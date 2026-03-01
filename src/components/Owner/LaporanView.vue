@@ -1,7 +1,11 @@
 <template>
   <v-container>
-    <h2 class="mb-4 text-left text-h4">Laporan Pendapatan</h2>
-
+    <div class="d-flex justify-space-between align-center mb-6">
+      <div class="text-left">
+        <h1 class="text-h4 font-weight-bold" style="color: #333333;">Laporan Pendapatan</h1>
+        <p class="text-grey-darken-1">Lihat dan unduh laporan pendapatan homestay.</p>
+      </div>
+    </div>
     <v-row class="mb-4">
       <v-col cols="12" md="4">
         <v-text-field
@@ -113,7 +117,7 @@ export default {
       headers: [
         { title: 'Kode Booking', key: 'kode_booking' },
         { title: 'Nama Tamu', key: 'user.name' },
-        { title: 'Tanggal Bayar', key: 'pembayaran.tanggal_bayar' },
+        { title: 'Tanggal Konfirmasi', key: 'pembayaran.tanggal_konfirmasi' },
         { title: 'Check In', key: 'tanggal_check_in' },
         { title: 'Check Out', key: 'tanggal_check_out' },
         { title: 'Total Bayar', key: 'total_bayar' },

@@ -57,7 +57,7 @@
               <v-btn 
                 block 
                 height="40" 
-                color="blue-darken-3" 
+                color="primary" 
                 class="text-white text-capitalize rounded-lg font-weight-bold"
                 elevation="2"
                 @click="goToBooking"
@@ -72,7 +72,7 @@
 
     <v-container class="my-16">
       <div class="text-center mb-10">
-        <div class="text-overline text-blue-darken-3 font-weight-bold">PILIHAN TERBAIK</div>
+        <div class="text-overline text-primary font-weight-bold">PILIHAN TERBAIK</div>
         <h2 class="text-h4 font-weight-bold text-grey-darken-3">Tipe Kamar Kami</h2>
         <v-divider class="mx-auto mt-3 border-opacity-100" length="60" color="primary" thickness="3"></v-divider>
       </div>
@@ -129,14 +129,14 @@
             <v-card-actions class="pa-4 pt-2">
               <div>
                 <div class="text-caption text-grey">Mulai dari</div>
-                <div class="text-h6 font-weight-bold text-blue-darken-3">
+                <div class="text-h6 font-weight-bold text-primary">
                   Rp {{ new Intl.NumberFormat('id-ID').format(room.harga) }}
                   <span class="text-caption text-grey font-weight-regular">/malam</span>
                 </div>
               </div>
               <v-spacer></v-spacer>
               <v-btn 
-                color="blue-darken-3" 
+                color="primary" 
                 variant="flat" 
                 class="text-capitalize"
                 @click="viewDetails(room)"
@@ -153,7 +153,7 @@
     <v-container>
       <div class="d-flex align-center justify-space-between mb-6">
         <div>
-          <h2 class="text-h4 font-weight-bold text-blue-darken-3">Promo Spesial</h2>
+          <h2 class="text-h4 font-weight-bold text-primary">Promo Spesial</h2>
           <p class="text-body-2 text-grey-darken-1 mt-1">Dapatkan penawaran terbaik hari ini</p>
         </div>
         <v-btn 
@@ -193,7 +193,7 @@
             :min-height="$vuetify.display.xs ? 150 : 180"
             elevation="4"
           >
-            <div class="ticket-left bg-blue-darken-3 d-flex flex-column align-center justify-center pa-3 position-relative"
+            <div class="ticket-left bg-primary d-flex flex-column align-center justify-center pa-3 position-relative"
                  :style="{ width: $vuetify.display.xs ? '100px' : '140px' }">
               
               <div class="punch-hole top"></div>
@@ -202,7 +202,7 @@
               <div :class="['font-weight-black text-white text-center', $vuetify.display.xs ? 'text-h6' : 'text-h4']">
                 {{ formatDiscountValue(promo) }}
               </div>
-              <div class="text-caption font-weight-bold text-blue-lighten-4 mt-1">OFF</div>
+              <div class="text-caption font-weight-bold text-white mt-1">OFF</div>
             </div>
 
             <div class="ticket-divider d-flex flex-column justify-center bg-white position-relative">
@@ -217,7 +217,7 @@
                   </v-chip>
                 </div>
                 
-                <div :class="['font-weight-bold text-blue-darken-4 line-clamp-1', $vuetify.display.xs ? 'text-body-2' : 'text-subtitle-1']">
+                <div :class="['font-weight-bold text-primary line-clamp-1', $vuetify.display.xs ? 'text-body-2' : 'text-subtitle-1']">
                   {{ promo.nama_promo }}
                 </div>
                 
@@ -260,8 +260,8 @@
               <v-slide-group-item v-for="review in latestReviews" :key="review.id">
                 <v-card class="ma-3 pa-6 rounded-xl border" width="350" flat color="white">
                   <div class="d-flex align-center mb-4">
-                    <v-avatar color="blue-lighten-4" size="48" class="mr-3">
-                      <span class="text-blue-darken-3 font-weight-bold text-h6">{{ review.user?.name?.charAt(0) || 'U' }}</span>
+                    <v-avatar color="primary" size="48" class="mr-3">
+                      <span class="text-white font-weight-bold text-h6">{{ review.user?.name?.charAt(0) || 'U' }}</span>
                     </v-avatar>
                     <div>
                       <div class="font-weight-bold text-body-1">{{ review.user?.name }}</div>
@@ -441,10 +441,9 @@ const goToBooking = () => {
 // 1. Image Logic: Diperbaiki agar lebih robust
 const heroImageUrl = computed(() => {
   if (content.value.hero_image_path) {
-    // Pastikan path bersih dari 'public/' jika API mengembalikannya
+   
     const cleanPath = content.value.hero_image_path.replace('public/', '').replace(/^\//, '');
-    // Gunakan URL storage Laravel standar
-    return `https://api.claristahomestay.web.id/storage/${cleanPath}`;
+    return `http://127.0.0.1:8000/storage/${cleanPath}`;
   }
   return 'https://images.unsplash.com/photo-1566073771259-6a8506099945?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80'; // Gambar Tropical Placeholder yang lebih bagus
 });

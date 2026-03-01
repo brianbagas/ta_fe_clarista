@@ -1,8 +1,9 @@
 // src/main.js
 import { createApp } from 'vue'
+import { createPinia } from 'pinia'
 import './style.css'
 import App from './App.vue'
-import router from './router' // 1. Impor router
+import router from './router'
 
 // Vuetify
 import 'vuetify/styles'
@@ -11,14 +12,29 @@ import * as components from 'vuetify/components'
 import * as directives from 'vuetify/directives'
 import '@mdi/font/css/materialdesignicons.css'
 
+//Apex Chart
+import VueApexCharts from "vue3-apexcharts";
+
 const app = createApp(App)
+const pinia = createPinia()
 const vuetify = createVuetify({
   components,
   directives,
+  theme: {
+    defaultTheme: 'light',
+    themes: {
+      light: {
+        colors: {
+          primary: '#d93631',
+        }
+      }
+    }
+  }
 })
-// 3. Gunakan plugin yang Anda butuhkan
+
+app.use(pinia)
 app.use(router)
 app.use(vuetify)
+app.use(VueApexCharts);
 
-// 4. Mount aplikasi ke elemen #app di HTML
 app.mount('#app')

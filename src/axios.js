@@ -29,7 +29,6 @@ apiClient.interceptors.request.use(
 // Response Interceptor - Handle ApiResponseTrait Format
 apiClient.interceptors.response.use(
   (response) => {
-    // For blob responses (like PDF downloads), return the full response
     if (response.config.responseType === 'blob') {
       return response.data;
     }
@@ -46,6 +45,9 @@ apiClient.interceptors.response.use(
       if (window.location.pathname !== '/login') {
         window.location.href = '/login';
       }
+    }
+    if (error.response?.status >= 500) {
+      console.error("Terjadi masalah pada server. Tim teknis sedang memperbaikinya.");
     }
 
     // Re-throw error for component-level handling

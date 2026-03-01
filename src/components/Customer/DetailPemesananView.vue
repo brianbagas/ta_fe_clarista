@@ -1,9 +1,11 @@
 <template>
   <v-container>
-    <v-btn to="/pesanan-saya" variant="text" class="mb-4">
-      <v-icon left>mdi-arrow-left</v-icon>
-      Kembali ke Riwayat
-    </v-btn>
+    <div class="d-flex justify-start mb-4">
+      <v-btn to="/pesanan-saya" variant="text" color="text-grey-darken-2">
+        <v-icon start>mdi-arrow-left</v-icon>
+        Kembali ke Riwayat
+      </v-btn>
+    </div>
 
     <div v-if="loading" class="text-center">
       <v-progress-circular indeterminate color="primary"></v-progress-circular>
@@ -18,7 +20,7 @@
           {{ pesanan.status_pemesanan.replace('_', ' ').toUpperCase() }}
         </v-chip>
       </v-card-title>
-      <v-card-subtitle>
+      <v-card-subtitle class="text-left">
         Kode Booking: {{ pesanan.kode_booking }}
       </v-card-subtitle>
 
@@ -59,7 +61,7 @@
       <v-divider class="my-4"></v-divider>
       
       <v-card-text class="pa-0">
-        <div class="px-4 px-md-6 py-4">
+        <div class="px-4 px-md-6 py-4 text-left">
             <div class="text-subtitle-1 font-weight-bold mb-2">Detail Kontak</div>
             <p class="mb-1"><strong>Nama:</strong> {{ pesanan.user.name }}</p>
             <p><strong>Email:</strong> {{ pesanan.user.email }}</p>
@@ -68,44 +70,44 @@
         <v-divider></v-divider>
 
         <div class="px-4 px-md-6 pt-4 pb-2">
-            <div class="text-subtitle-1 font-weight-bold">Rincian Tagihan</div>
+            <div class="text-subtitle-1 font-weight-bold text-left">Rincian Tagihan</div>
         </div>
       <!-- Desktop Table (Hidden on small screens) -->
       <v-table density="comfortable" class="text-body-2 d-none d-md-block">
         <thead>
           <tr>
             <th class="text-left font-weight-bold text-grey-darken-2">Tipe Kamar</th>
-            <th class="text-center font-weight-bold text-grey-darken-2">Jumlah</th>
-            <th class="text-center font-weight-bold text-grey-darken-2">Durasi</th>
-            <th class="text-right font-weight-bold text-grey-darken-2">Total</th>
+            <th class="text-left font-weight-bold text-grey-darken-2">Jumlah</th>
+            <th class="text-left font-weight-bold text-grey-darken-2">Durasi</th>
+            <th class="text-left font-weight-bold text-grey-darken-2">Total</th>
           </tr>
         </thead>
         <tbody>
           <tr v-for="detail in pesanan.detail_pemesanans" :key="detail.id">
-            <td class="py-3">
+            <td class="py-3 text-left">
                 <div class="font-weight-bold">{{ detail.kamar.tipe_kamar }}</div>
                 <div class="text-caption text-grey">Rp {{ formatCurrency(detail.harga_per_malam) }} / malam</div>
             </td>
-            <td class="text-center">{{ detail.jumlah_kamar }} Unit</td>
-            <td class="text-center">{{ durasiMalam }} Malam</td>
-            <td class="text-right font-weight-bold">Rp {{ formatCurrency(detail.harga_per_malam * detail.jumlah_kamar * durasiMalam) }}</td>
+            <td class="text-left">{{ detail.jumlah_kamar }} Unit</td>
+            <td class="text-left">{{ durasiMalam }} Malam</td>
+            <td class="text-left font-weight-bold">Rp {{ formatCurrency(detail.harga_per_malam * detail.jumlah_kamar * durasiMalam) }}</td>
           </tr>
         </tbody>
         <tfoot>
           <tr>
-            <td colspan="3" class="text-right text-caption text-grey-darken-1 pt-4">Subtotal</td>
-            <td class="text-right font-weight-bold pt-4">Rp {{ formatCurrency(subtotal) }}</td>
+            <td colspan="3" class="text-left text-caption text-grey-darken-1 pt-4">Subtotal</td>
+            <td class="text-left font-weight-bold pt-4">Rp {{ formatCurrency(subtotal) }}</td>
           </tr>
           <tr v-if="pesanan.promo">
-            <td colspan="3" class="text-right text-caption text-green">
+            <td colspan="3" class="text-left text-caption text-green">
               <v-icon start size="x-small">mdi-ticket-percent</v-icon> 
               Diskon ({{ pesanan.promo.kode_promo }})
             </td>
-            <td class="text-right text-green font-weight-bold">- Rp {{ formatCurrency(subtotal - pesanan.total_bayar) }}</td>
+            <td class="text-left text-green font-weight-bold">- Rp {{ formatCurrency(subtotal - pesanan.total_bayar) }}</td>
           </tr>
           <tr>
-            <td colspan="3" class="text-right text-h6 font-weight-black text-primary pt-2">Total Bayar</td>
-            <td class="text-right text-h6 font-weight-black text-primary pt-2">Rp {{ formatCurrency(pesanan.total_bayar) }}</td>
+            <td colspan="3" class="text-left text-h6 font-weight-black text-primary pt-2">Total Bayar</td>
+            <td class="text-left text-h6 font-weight-black text-primary pt-2">Rp {{ formatCurrency(pesanan.total_bayar) }}</td>
           </tr>
         </tfoot>
       </v-table>

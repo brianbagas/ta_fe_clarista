@@ -3,12 +3,12 @@
     <v-row>
       <v-col cols="12" md="8">
         <v-card elevation="2" class="rounded-lg mb-6">
-          <v-card-title class="text-h5 font-weight-bold pa-5 bg-blue-darken-3 text-white">
-            Informasi Reservasi
+          <v-card-title class="text-h5 font-weight-bold pa-5 bg-white text-black text-left">
+            Reservasi
           </v-card-title>
-
+          <v-divider></v-divider>
           <v-card-text class="pa-6">
-            <v-alert v-if="!auth.isAuthenticated.value" type="warning" variant="tonal" class="mb-6">
+            <v-alert v-if="!auth.isAuthenticated" color="grey-lighten-1" variant="tonal" class="mb-6 text-black">
               <div class="d-flex align-center justify-space-between">
                 <span>Silakan login terlebih dahulu untuk melakukan pemesanan.</span>
                 <v-btn color="warning" size="small" to="/login">Login</v-btn>
@@ -21,7 +21,7 @@
 
             <v-form ref="formRef">
               <h3 class="text-h6 font-weight-bold mb-4 d-flex align-center">
-                <v-icon start color="primary">mdi-calendar-range</v-icon>
+                <v-icon start color="grey-darken-2">mdi-calendar-range</v-icon>
                 Pilih Tanggal
               </h3>
               <v-row>
@@ -52,11 +52,11 @@
               <v-divider class="my-6"></v-divider>
 
               <h3 class="text-h6 font-weight-bold mb-2 d-flex align-center">
-                <v-icon start color="primary">mdi-bed</v-icon>
+                <v-icon start color="grey-darken-2">mdi-bed</v-icon>
                 Pilih Tipe Kamar
               </h3>
               
-              <v-alert v-if="!isDateSelected" type="info" variant="tonal" class="mb-4">
+              <v-alert v-if="!isDateSelected" type="grey-lighten-1" variant="tonal" class="mb-4 text-black ">
                 Silakan pilih tanggal Check-in dan Check-out terlebih dahulu untuk melihat ketersediaan kamar.
               </v-alert>
 
@@ -78,7 +78,7 @@
                           class="bg-grey-lighten-2"
                         >
                           <template v-slot:placeholder>
-                            <v-row class="fill-height ma-0" align="center" justify="center">
+                            <v-row class="fill-height ma-0 text-center justify-center">
                               <v-progress-circular indeterminate color="grey-lighten-5"></v-progress-circular>
                             </v-row>
                           </template>
@@ -107,10 +107,10 @@
                           <v-icon size="small" color="grey">mdi-television</v-icon>
                         </div>
                         <div class="text-primary font-weight-bold">
-                          Rp {{ formatPrice(kamar.harga) }} <span class="text-caption text-grey">/ malam</span>
+                          Rp {{ formatPrice(kamar.harga) }} <span class="text-caption text-grey-darken-2">/ malam</span>
                         </div>
                         
-                        <div class="text-caption mt-1" :class="kamar.sisa_kamar < 3 ? 'text-red font-weight-bold' : 'text-green'">
+                        <div class="text-caption mt-1" :class="kamar.sisa_kamar < 3 ? 'text-grey-lighten-1 font-weight-bold' : 'text-green'">
                           <span v-if="kamar.sisa_kamar > 0">Tersedia {{ kamar.sisa_kamar }} unit</span>
                           <span v-else class="text-red">Habis Terjual!</span>
                         </div>
@@ -159,7 +159,7 @@
                         v-if="!appliedPromo"
                         block 
                         height="56" 
-                        color="blue-grey-darken-3" 
+                        color="grey-lighten-5" 
                         @click="applyPromo"
                         :loading="isCheckingPromo"
                         :disabled="!form.kodePromo || selectedKamarsData.length === 0"
@@ -189,12 +189,12 @@
       </v-col>
 
       <v-col cols="12" md="4">
-        <v-card class="rounded-lg sticky-summary" elevation="4">
-          <v-card-title class="pa-4 font-weight-bold">Ringkasan Pesanan</v-card-title>
+        <v-card class="rounded-lg sticky-summary bg-grey-darken-3" elevation="4">
+          <v-card-title class="pa-4 font-weight-bold text-left">Ringkasan Pesanan</v-card-title>
           <v-divider></v-divider>
           <v-card-text class="pa-4">
             <div class="d-flex justify-space-between mb-4">
-              <span class="text-grey">Durasi Menginap:</span>
+              <span class="text-white">Durasi Menginap:</span>
               <span class="font-weight-bold">{{ diffNights }} Malam</span>
             </div>
 
@@ -229,7 +229,7 @@
 
             <div class="d-flex justify-space-between align-center mb-6">
               <span class="text-h6 font-weight-bold">Total Bayar:</span>
-              <span class="text-h5 font-weight-bold text-blue-darken-3">Rp {{ formatPrice(grandTotal) }}</span>
+              <span class="text-h5 font-weight-bold text-white">Rp {{ formatPrice(grandTotal) }}</span>
             </div>
 
             <v-btn
@@ -255,7 +255,9 @@
 import { ref, reactive, computed, watch, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router'; // Import useRoute and useRouter
 import axios from '../../axios'; // Pastikan path ini sesuai
-import * as auth from '../../stores/auth.js'; 
+import { useAuthStore } from '../../stores/auth';
+
+const auth = useAuthStore();
 
 const route = useRoute(); // Initialize route
 const router = useRouter(); // Initialize router
@@ -325,7 +327,7 @@ const grandTotal = computed(() => {
 
 const isFormValid = computed(() => {
   return (
-    auth.isAuthenticated.value &&
+    auth.isAuthenticated &&
     diffNights.value > 0 &&
     selectedKamarsData.value.length > 0
   );

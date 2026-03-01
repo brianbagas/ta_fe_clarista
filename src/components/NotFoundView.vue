@@ -5,7 +5,7 @@
         <v-icon 
           icon="mdi-map-marker-question" 
           size="150" 
-          color="grey-lighten-1"
+          color="grey-darken-2"
           class="mb-4"
         ></v-icon>
         

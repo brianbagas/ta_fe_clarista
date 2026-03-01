@@ -18,7 +18,7 @@
         <v-card elevation="0" border class="mb-6 rounded-lg">
             <div class="d-flex justify-space-between align-center pa-4 bg-grey-lighten-5 border-b">
                 <div>
-                    <h1 class="text-h5 font-weight-bold text-primary">Order #{{ pesanan.kode_booking }}</h1>
+                    <h1 class="text-h5 font-weight-bold" style="color: #333333;">Order #{{ pesanan.kode_booking }}</h1>
                     <div class="text-caption text-grey-darken-1">Dibuat pada: {{ formatDate(pesanan.created_at) }}</div>
                 </div>
                 <div class="d-flex align-center gap-2">

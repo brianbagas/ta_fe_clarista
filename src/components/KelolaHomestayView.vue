@@ -1,18 +1,18 @@
 <template>
   <v-container>
-    <h1 class="text-h4 mb-4 text-left">Manajemen Halaman Publik</h1>
+    <h1 class="text-h4 mb-4 text-left font-weight-bold" style="color: #333333;">Manajemen Halaman Publik</h1>
 
     <v-card>
-      <v-tabs v-model="tab" bg-color="primary">
-        <v-tab value="hero">Hero Section</v-tab>
-        <v-tab value="kontak">Info Kontak & Lokasi</v-tab>
-        <v-tab value="bank">Rekening Bank</v-tab>
+      <v-tabs v-model="tab" bg-color="transparent" color="primary" slider-color="primary" align-tabs="start" class="border-b">
+        <v-tab value="hero" class="text-none font-weight-bold">Hero Section</v-tab>
+        <v-tab value="kontak" class="text-none font-weight-bold">Info Kontak & Lokasi</v-tab>
+        <v-tab value="bank" class="text-none font-weight-bold">Rekening Bank</v-tab>
       </v-tabs>
 
       <v-card-text>
         <v-window v-model="tab">
           <v-window-item value="hero">
-            <v-form @submit.prevent="saveContent">
+            <v-form @submit.prevent="saveContent" class="pt-2 px-1">
               <v-text-field
                 label="Teks Headline (Opsional)"
                 v-model="content.hero_title"
@@ -24,18 +24,54 @@
                 hint="Teks pendukung di bawah headline"
                 class="mt-4"
               ></v-text-field>
-              <v-file-input
-                label="Ganti Gambar Banner Utama"
-                @change="onFileChange"
-                accept="image/*"
-                class="mt-4"
-              ></v-file-input>
-              <v-btn type="submit" color="primary" :loading="loading">Simpan Perubahan Hero</v-btn>
+              <!-- Gambar Banner: thumbnail di kiri, file input di kanan -->
+              <p class="text-caption text-grey mt-4 mb-1">Gambar Banner</p>
+              <div class="d-flex align-center ga-3 mt-1">
+                <!-- Thumbnail Preview -->
+                <div
+                  v-if="content.hero_image_path"
+                  class="rounded overflow-hidden flex-shrink-0"
+                  style="box-sizing:border-box; width:100px; height:72px; border:1px solid #e0e0e0;"
+                >
+                  <v-img
+                    :src="heroImageUrl"
+                    width="100"
+                    height="72"
+                    cover
+                    class="rounded"
+                  >
+                    <template #error>
+                      <div class="d-flex align-center justify-center bg-grey-lighten-3" style="width:100px;height:72px;">
+                        <v-icon color="grey-darken-2" size="24">mdi-image-broken-variant</v-icon>
+                      </div>
+                    </template>
+                  </v-img>
+                </div>
+                <div
+                  v-else
+                  class="d-flex align-center justify-center flex-shrink-0 rounded bg-grey-lighten-3 text-grey-darken-1 text-caption"
+                  style="box-sizing:border-box; width:100px; height:72px; border:1px dashed #bdbdbd;"
+                >
+                  No Image
+                </div>
+
+                <!-- File Input -->
+                <v-file-input
+                  label="Pilih file..."
+                  @change="onFileChange"
+                  accept="image/*"
+                  hide-details
+                  density="compact"
+                  class="flex-grow-1"
+                ></v-file-input>
+              </div>
+
+              <v-btn type="submit" color="primary" :loading="loading" class="mt-4">Simpan Perubahan Hero</v-btn>
             </v-form>
           </v-window-item>
 
           <v-window-item value="kontak">
-             <v-form @submit.prevent="saveContent">
+             <v-form @submit.prevent="saveContent" class="pt-2 px-1">
                 <v-textarea
                     label="Alamat Lengkap"
                     v-model="content.alamat"
@@ -64,8 +100,8 @@
 
           <!-- TAB REKENING BANK -->
           <v-window-item value="bank">
-             <div class="d-flex justify-space-between text-left mb-4">
-                <h3 class="text-h6">Daftar Rekening Bank</h3>
+             <div class="d-flex justify-space-between text-left mb-4 mt-2 px-1">
+                <h3 class="text-h6 font-weight-bold">Daftar Rekening Bank</h3>
                 <v-btn color="primary" prepend-icon="mdi-plus" @click="openBankDialog()">Tambah Bank</v-btn>
              </div>
 
@@ -107,7 +143,7 @@
 
     <v-dialog v-model="bankDialog.show" max-width="500">
         <v-card>
-            <v-card-title>{{ bankDialog.isEdit ? 'Edit Rekening Bank' : 'Tambah Rekening Bank' }}</v-card-title>
+            <v-card-title class="font-weight-bold">{{ bankDialog.isEdit ? 'Edit Rekening Bank' : 'Tambah Rekening Bank' }}</v-card-title>
             <v-card-text>
                 <v-form @submit.prevent="saveBank">
                     <v-text-field v-model="bankForm.nama_bank" label="Nama Bank" required></v-text-field>
@@ -126,7 +162,7 @@
 
     <v-dialog v-model="deleteDialog.show" max-width="400">
         <v-card>
-            <v-card-title class="text-h6">Konfirmasi Hapus</v-card-title>
+            <v-card-title class="text-h6 font-weight-bold">Konfirmasi Hapus</v-card-title>
             <v-card-text>Apakah Anda yakin ingin menghapus rekening ini?</v-card-text>
             <v-card-actions>
                 <v-spacer></v-spacer>
@@ -143,13 +179,14 @@
 </template>
 
 <script setup>
-import { ref, onMounted, reactive } from 'vue';
+import { ref, onMounted, reactive, computed } from 'vue';
 import apiClient from '../axios';
-import { state } from '../stores/auth';
-import { fetchUser } from '../stores/auth';
+import { useAuthStore } from '../stores/auth';
+
+const auth = useAuthStore();
 
 onMounted(() => {
-  fetchUser();
+  auth.fetchUser();
   fetchContent();
   fetchBanks();
 });
@@ -159,6 +196,12 @@ const loading = ref(false);
 const error = ref(null);
 const content = ref({});
 const heroImageFile = ref(null);
+
+// URL lengkap gambar hero yang sedang tersimpan di backend
+const heroImageUrl = computed(() => {
+  if (!content.value.hero_image_path) return null;
+  return `http://localhost:8000/storage/${content.value.hero_image_path}`;
+});
 
 const snackbar = ref({
     show: false,

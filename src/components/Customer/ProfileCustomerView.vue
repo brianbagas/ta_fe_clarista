@@ -2,19 +2,19 @@
   <v-container>
     <v-row justify="center">
       <v-col cols="12" md="10">
-        <h2 class="text-h4 mb-6 text-primary font-weight-bold">Pengaturan Akun</h2>
+        <h2 class="text-h4 mb-6 text-grey-darken-2 font-weight-bold">Pengaturan Akun</h2>
         
         <v-card class="rounded-lg elevation-2">
-          <v-tabs v-model="activeTab" bg-color="primary">
-            <v-tab value="profile" prepend-icon="mdi-account-edit">Edit Profil</v-tab>
-            <v-tab value="security" prepend-icon="mdi-shield-lock">Keamanan</v-tab>
+          <v-tabs v-model="activeTab" bg-color="transparent" color="primary" slider-color="primary" align-tabs="start" class="border-b">
+            <v-tab value="profile" prepend-icon="mdi-account-edit" class="text-none font-weight-bold">Edit Profil</v-tab>
+            <v-tab value="security" prepend-icon="mdi-shield-lock" class="text-none font-weight-bold">Keamanan</v-tab>
           </v-tabs>
 
           <v-card-text class="pa-6">
             <v-window v-model="activeTab">
               
               <v-window-item value="profile">
-                <v-form @submit.prevent="handleUpdate">
+                <v-form @submit.prevent="handleUpdate" class="pt-2 px-1">
                   <v-row>
                     <v-col cols="12" md="6">
                       <v-text-field
@@ -48,7 +48,7 @@
                         prepend-inner-icon="mdi-email"
                         hint="Mengubah email mungkin memerlukan verifikasi ulang"
                         persistent-hint
-                         class="mb-2"
+                         class="mb-2 text-left"
                          color="primary"
                       ></v-text-field>
                     </v-col>
@@ -63,13 +63,13 @@
                         hint="Penting untuk konfirmasi reservasi"
                         persistent-hint
                         @input="profileData.no_hp = profileData.no_hp.replace(/[^0-9]/g, '')"
-                         class="mb-2"
+                         class="mb-2 text-left"
                          color="primary"
                       ></v-text-field>
                     </v-col>
                   </v-row>
                   
-                  <div class="d-flex justify-end mt-6">
+                  <div class="d-flex justify-center mt-6">
                     <v-btn type="submit" color="primary" :loading="loading" size="large" variant="elevated">
                       Simpan Perubahan
                     </v-btn>
@@ -78,11 +78,11 @@
               </v-window-item>
 
               <v-window-item value="security">
-                <v-alert type="info" variant="tonal" class="mb-4" icon="mdi-information">
+                <v-alert type="info" variant="tonal" class="mb-4 mt-2 mx-1" icon="mdi-information">
                     Gunakan password yang kuat (minimal 8 karakter).
                 </v-alert>
 
-                <v-form @submit.prevent="handleChangePassword" ref="passwordFormRef">
+                <v-form @submit.prevent="handleChangePassword" ref="passwordFormRef" class="px-1">
                   <v-text-field
                     label="Password Saat Ini"
                     v-model="passwordForm.current_password"
@@ -151,7 +151,9 @@
 <script setup>
 import { ref, onMounted } from 'vue';
 import apiClient from '../../axios'; 
-import * as auth from '../../stores/auth.js'; 
+import { useAuthStore } from '../../stores/auth';
+
+const auth = useAuthStore();
 
 const activeTab = ref('profile');
 const loading = ref(false);
@@ -172,13 +174,13 @@ const passwordForm = ref({
     password_confirmation: ''
 });
 
-onMounted(async () => { // Make async to ensure await works if needed, though fetchUser is usually correct
-  if (!auth.state.user) {
+onMounted(async () => {
+  if (!auth.user) {
       await auth.fetchUser();
   }
   
-  if (auth.state.user) {
-    fillProfileData(auth.state.user);
+  if (auth.user) {
+    fillProfileData(auth.user);
   }
 });
 
@@ -197,7 +199,7 @@ const handleUpdate = async () => {
     if (response.success) {
       await auth.fetchUser(); 
       // Update local state just to be sure
-      if(auth.state.user) fillProfileData(auth.state.user);
+      if(auth.user) fillProfileData(auth.user);
       
       snackbar.value = { show: true, text: response.message || 'Profil berhasil diperbarui!', color: 'success' };
     }

@@ -131,7 +131,9 @@
 
 <script setup>
 import { ref, computed } from 'vue'
-import { register } from '../stores/auth' // Pastikan path sesuai
+import { useAuthStore } from '../stores/auth'
+
+const auth = useAuthStore()
 
 const name = ref('')
 const email = ref('')
@@ -173,7 +175,7 @@ const handleRegister = async () => {
   isLoading.value = true
 
   try {
-    await register({
+    await auth.register({
       name: name.value,
       email: email.value,
       no_hp: no_hp.value,

@@ -1,17 +1,13 @@
 <template>
   <v-container>
-    <v-card>
-      <v-card-title class="d-flex align-center pe-2 text-h4">
-        Manajemen Review Pelanggan
+    <div class="d-flex justify-space-between align-center mb-6">
+      <div class="text-left">
+        <h1 class="text-h4 font-weight-bold" style="color: #333333;">Manajemen Review</h1>
+        <p class="text-grey-darken-1">Kelola ulasan dan penilaian dari tamu.</p>
+      </div>
+    </div>
 
-        <v-spacer></v-spacer>
-
-        <v-btn color="primary" prepend-icon="mdi-plus" @click="openNewDialog">
-          Tambah Review
-        </v-btn>
-      </v-card-title>
-
-      <v-divider></v-divider>
+    <v-card elevation="0" border rounded="lg">
 
       <v-data-table-server
         v-model:items-per-page="options.itemsPerPage"
@@ -57,10 +53,10 @@
         </template>
 
         <template v-slot:[`item.actions`]="{ item }">
-          <v-icon class="me-2" size="small" @click="editItem(item)">
+          <v-icon class="me-2" size="small" color="grey-darken-2" @click="editItem(item)">
             mdi-pencil
           </v-icon>
-          <v-icon size="small" @click="deleteItem(item)">
+          <v-icon size="small" color="grey-darken-2" @click="deleteItem(item)">
             mdi-delete
           </v-icon>
         </template>

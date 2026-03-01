@@ -41,10 +41,10 @@
            <v-form ref="form" v-model="valid" @submit.prevent="saveUnit">
             <v-text-field
               v-model="editedItem.nomor_unit"
-              label="Nama/Nomor Unit"
-              :rules="[v => !!v || 'Harus diisi']"
+              label="Nomor Unit Auto-Generate"
+              :placeholder="isEditing ? '' : 'Auto-Generate'"
               variant="outlined"
-              :disabled="isEditing" 
+              disabled
             ></v-text-field>
 
             <v-select

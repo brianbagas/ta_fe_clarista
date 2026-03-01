@@ -27,7 +27,7 @@
     <div class="d-flex align-center mb-6">
         <v-btn icon="mdi-arrow-left" variant="text" @click="goBackToList" class="mr-2"></v-btn>
         <div>
-                <h1 class="text-h4 font-weight-bold">Verifikasi Pembayaran</h1>
+                <h1 class="text-h4 font-weight-bold" style="color: #333333;">Verifikasi Pembayaran</h1>
                 <div class="d-flex align-center mt-1" v-if="detailPesanan">
                     <div class="text-subtitle-1 text-grey mr-3">
                         Order #{{ detailPesanan.kode_booking }}
@@ -296,7 +296,7 @@ const fetchDetail = async (id) => {
 
 // ACTIONS
 const getBuktiBayarUrl = (path) => {
-  const baseUrl = import.meta.env.VITE_API_BASE_URL || 'https://api.claristahomestay.web.id';
+  const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
   return `${baseUrl}/storage/${path.replace('public/', '')}`;
 };
 

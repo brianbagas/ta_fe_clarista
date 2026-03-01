@@ -1,13 +1,11 @@
 <template>
-  <v-container fluid class="bg-grey-lighten-4 h-100">
-    <v-row class="mb-4">
-      <v-col cols="12">
-        <h2 class="text-h4 font-weight-bold text-primary">Dashboard Owner</h2>
-        <p class="text-subtitle-1 text-grey-darken-1">
-          Ringkasan performa Clarista Homestay.
-        </p>
-      </v-col>
-    </v-row>
+  <v-container>
+    <div class="d-flex justify-space-between align-center mb-6">
+      <div class="text-left">
+        <h1 class="text-h4 font-weight-bold" style="color: #333333;">Dashboard Owner</h1>
+        <p class="text-grey-darken-1">Ringkasan performa Clarista Homestay.</p>
+      </div>
+    </div>
 
     <v-row v-if="loading">
       <v-col cols="12" class="text-center mt-10">
@@ -206,7 +204,7 @@
               </template>
 
               <template v-slot:item.actions="{ item }">
-                <v-btn icon="mdi-eye" size="small" variant="text" color="primary" :to="`/admin/pesanan-saya/${item.id}`"></v-btn>
+                <v-btn icon="mdi-eye" size="small" variant="text" color="grey-darken-2" :to="`/admin/pesanan-saya/${item.id}`"></v-btn>
               </template>
             </v-data-table>
           </v-card>
@@ -243,9 +241,9 @@ const pollingInterval = ref(null);
 
 // Konfigurasi Header Tabel
 const headers = [
-  { title: 'ID', key: 'id' },
+  { title: 'Kode Booking', key: 'kode_booking' },
   { title: 'Nama Tamu', key: 'user.name' }, // Sesuaikan dengan relasi di API Laravel
-  { title: 'Check In', key: 'tanggal_checkin' },
+  { title: 'Check In', key: 'tanggal_check_in' },
   { title: 'Total', key: 'total_bayar' },
   { title: 'Status', key: 'status_pemesanan' },
   { title: 'Aksi', key: 'actions', sortable: false },
@@ -261,7 +259,6 @@ const getStatusColor = (status_pemesanan) => {
   switch (status_pemesanan) {
     case 'diferifikasi': return 'success';
     case 'menunggu_konfirmasi': return 'warning'; // Update status string match
-    case 'menunggu_verifikasi': return 'warning'; // Handle legacy/potential mismatch
     case 'menunggu_pembayaran': return 'info';
     case 'dibatalkan': return 'error';
     default: return 'grey';
@@ -297,8 +294,12 @@ const fetchDashboardData = async () => {
     });
 
     if (responseRecent.success) {
+      // API Laravel paginate() mengembalikan data berupa objek yang di dalamnya ada array `data`
+      const rawData = responseRecent.data;
+      const arrayData = Array.isArray(rawData) ? rawData : (rawData.data || []);
+      
       // Simpan untuk tabel (ambil 5 teratas)
-      recentBookings.value = responseRecent.data.slice(0, 5);
+      recentBookings.value = arrayData.slice(0, 5);
     }
 
     // 2. Ambil Statistik Dashboard dari Server (Centralized Logic)

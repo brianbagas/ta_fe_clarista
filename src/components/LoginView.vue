@@ -47,7 +47,7 @@
           block 
           flat
           height="48"
-          color="#1565C0"
+          color="primary"
           class="btn-login text-capitalize"
         >
           Login
@@ -68,8 +68,9 @@
 
 <script setup>
 import { ref } from 'vue';
-import { login } from '../stores/auth'; 
+import { useAuthStore } from '../stores/auth';
 
+const auth = useAuthStore();
 const email = ref('');
 const password = ref('');
 const showPassword = ref(false);
@@ -78,7 +79,7 @@ const error = ref(null);
 const handleLogin = async () => {
   error.value = null;
   try {
-    await login({ 
+    await auth.login({ 
       email: email.value, 
       password: password.value 
     });
@@ -153,7 +154,7 @@ const handleLogin = async () => {
 :deep(.v-field--focused .v-field__outline__start),
 :deep(.v-field--focused .v-field__outline__end),
 :deep(.v-field--focused .v-field__outline__notch) {
-  border-color: #1976D2 !important; 
+  border-color: #d93631 !important; 
 }
 
 /* 5. Styling Tombol */
@@ -162,7 +163,6 @@ const handleLogin = async () => {
   font-weight: 600;
   border-radius: 8px;
   margin-top: 10px;
-  color: white !important;
   letter-spacing: 0.5px; /* Sedikit spacing agar lebih mudah dibaca */
 }
 
@@ -186,7 +186,7 @@ const handleLogin = async () => {
 }
 
 .login-footer a {
-  color: #1565C0;
+  color: #d93631;
   text-decoration: none;
   font-weight: 600;
 }

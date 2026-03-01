@@ -1,8 +1,8 @@
 <template>
   <v-container class="py-10">
     <div class="text-center mb-10">
-      <v-icon size="60" color="orange-darken-1" class="mb-2">mdi-ticket-percent-outline</v-icon>
-      <h1 class="text-h4 font-weight-bold text-blue-darken-3">Promo Spesial Clarista</h1>
+      <v-icon size="60" color="primary" class="mb-2">mdi-ticket-percent-outline</v-icon>
+      <h1 class="text-h4 font-weight-bold text-grey-darken-2">Promo Spesial Clarista</h1>
       <p class="text-subtitle-1 text-grey-darken-1 mt-2">
         Hemat lebih banyak untuk liburan impian Anda. Salin kodenya dan gunakan saat checkout!
       </p>
@@ -22,7 +22,7 @@
       <v-col v-for="promo in promos" :key="promo.id" cols="12" md="4">
         <v-card class="promo-card d-flex flex-column h-100" elevation="4">
           
-          <div class="ticket-header bg-blue-darken-3 pa-6 text-center position-relative">
+          <div class="ticket-header bg-primary pa-6 text-center position-relative">
             <div class="punch-hole left"></div>
             <div class="punch-hole right"></div>
 
@@ -31,7 +31,7 @@
               {{ formatDiscount(promo) }}
             </div>
             <div class="mt-2">
-              <v-chip color="orange-accent-2" variant="flat" size="small" class="font-weight-bold text-blue-darken-4">
+              <v-chip color="grey-darken-2" variant="flat" size="small" class="font-weight-bold text-white">
                 <v-icon start icon="mdi-clock-outline" size="x-small"></v-icon>
                 Berlaku s/d {{ formatDate(promo.berlaku_selesai) }}
               </v-chip>
@@ -48,7 +48,7 @@
 
             <div class="d-flex align-center bg-grey-lighten-4 rounded-lg px-3 py-2 border-dashed-container">
               <v-icon color="grey-darken-1" class="mr-2">mdi-tag-text-outline</v-icon>
-              <div class="flex-grow-1 font-weight-bold text-subtitle-1 text-blue-darken-3 spacing-1">
+              <div class="flex-grow-1 font-weight-bold text-subtitle-1 text-grey-darken-2 spacing-1">
                 {{ promo.kode_promo }}
               </div>
               
@@ -58,7 +58,7 @@
                     v-bind="props"
                     icon="mdi-content-copy"
                     size="small"
-                    color="primary"
+                    color="grey-darken-2"
                     variant="text"
                     @click="copyToClipboard(promo.kode_promo)"
                   ></v-btn>
@@ -75,7 +75,7 @@
       <h3 class="text-h6 text-grey mt-4">Belum ada promo tersedia saat ini.</h3>
     </div>
 
-    <v-snackbar v-model="snackbar" color="success" timeout="2000" location="bottom right">
+    <v-snackbar v-model="snackbar" color="success" timeout="2000" location="bottom center">
       <v-icon start>mdi-check-circle</v-icon>
       Kode promo berhasil disalin!
     </v-snackbar>

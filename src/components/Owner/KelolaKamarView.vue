@@ -1,11 +1,11 @@
 <template>
-  <v-container fluid class="pa-6">
-    <div class="d-flex justify-space-between text-left mb-6">
-      <div>
-        <h1 class="text-h4 font-weight-bold text-primary">Manajemen Kamar</h1>
-        <p class="text-subtitle-1 text-medium-emphasis">Kelola tipe kamar, harga, dan ketersediaan homestay.</p>
+  <v-container>
+    <div class="d-flex justify-space-between align-center mb-6">
+      <div class="text-left">
+        <h1 class="text-h4 font-weight-bold" style="color: #333333;">Manajemen Kamar</h1>
+        <p class="text-grey-darken-1">Kelola tipe kamar, harga, dan ketersediaan homestay.</p>
       </div>
-      <v-btn color="primary" elevation="2" prepend-icon="mdi-plus" size="large" @click="openAddDialog">
+      <v-btn color="primary" elevation="2" prepend-icon="mdi-plus" @click="openAddDialog">
         Tambah Tipe Kamar
       </v-btn>
     </div>
@@ -20,7 +20,7 @@
 
     <v-row v-if="!loading">
       <v-col cols="12" v-if="kamars.length === 0" class="text-center mt-10">
-        <v-icon size="100" color="grey-lighten-2">mdi-bed-empty</v-icon>
+        <v-icon size="100" color="grey-darken-2">mdi-bed-empty</v-icon>
         <h3 class="text-h5 text-grey mt-4">Belum ada tipe kamar</h3>
         <p class="text-grey">Silakan tambahkan tipe kamar baru untuk memulai.</p>
       </v-col>
@@ -46,7 +46,7 @@
               </template>
               <template v-slot:error>
                 <div class="d-flex align-center justify-center fill-height bg-grey-lighten-3 flex-column">
-                  <v-icon size="48" color="grey-lighten-1">mdi-image-off</v-icon>
+                  <v-icon size="48" color="grey-darken-2">mdi-image-off</v-icon>
                   <div class="text-caption text-grey mt-2">No Image</div>
                 </div>
               </template>
@@ -57,7 +57,7 @@
               color="grey-lighten-3"
               class="d-flex align-center justify-center flex-column"
             >
-              <v-icon size="48" color="grey-lighten-1">mdi-image-off</v-icon>
+              <v-icon size="48" color="grey-darken-2">mdi-image-off</v-icon>
               <div class="text-caption text-grey mt-2">No Image Available</div>
             </v-sheet>
 
@@ -110,7 +110,7 @@
     <div v-if="dirtyUnits.length > 0" class="mt-8 mb-4 text-left">
       <v-divider class="mb-6"></v-divider>
       <h2 class="text-h5 font-weight-bold text-error mb-2 d-flex align-center">
-        <v-icon icon="mdi-broom" class="mr-2"></v-icon>
+        <v-icon icon="mdi-broom" color="grey-darken-2" class="mr-2"></v-icon>
         Daftar Kamar Kotor (Perlu Dibersihkan)
       </h2>
       <p class="text-subtitle-2 text-medium-emphasis mb-4">Unit kamar di bawah ini berstatus kotor dan belum siap untuk check-in.</p>

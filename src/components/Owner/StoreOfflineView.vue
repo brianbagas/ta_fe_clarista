@@ -1,12 +1,14 @@
 <template>
   <v-container>
+    <div class="d-flex justify-space-between align-center mb-6">
+      <div class="text-left">
+        <h1 class="text-h4 font-weight-bold" style="color: #333333;">Input Walk-in Guest</h1>
+        <p class="text-grey-darken-1">{{ isCheckInToday ? 'Transaksi langsung dan Check-in otomatis' : 'Reservasi offline untuk tanggal mendatang' }}</p>
+      </div>
+    </div>
     <v-row justify="center">
       <v-col cols="12" md="10">
         
-        <div class="mb-4">
-            <h2 class="text-left text-h4 font-weight-bold text-primary">Input Walk-in Guest</h2>
-            <p class="text-left text-subtitle-1 text-grey">{{ isCheckInToday ? 'Transaksi langsung dan Check-in otomatis' : 'Reservasi offline untuk tanggal mendatang' }}</p>
-        </div>
 
         <v-card class="mb-6" elevation="2">
             <v-card-title class="bg-grey-lighten-4 text-left">

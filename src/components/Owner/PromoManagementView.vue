@@ -1,16 +1,16 @@
 <template>
-  <v-container fluid
-  >
-    <v-card class="elevation-2 ">
-      <v-toolbar flat>
-        <v-toolbar-title class="text-left text-h4 font-weight-bold">Management Promo</v-toolbar-title>
-        <v-divider class="mx-4" inset vertical></v-divider>
-        <v-spacer></v-spacer>
-        
-        <v-btn color="primary" variant="elevated" @click="openAddDialog">
-          Tambah Promo
-        </v-btn>
-      </v-toolbar>
+  <v-container>
+    <div class="d-flex justify-space-between align-center mb-6">
+      <div class="text-left">
+        <h1 class="text-h4 font-weight-bold" style="color: #333333;">Management Promo</h1>
+        <p class="text-grey-darken-1">Kelola promo dan diskon untuk pelanggan.</p>
+      </div>
+      <v-btn color="primary" elevation="2" prepend-icon="mdi-plus" @click="openAddDialog">
+        Tambah Promo
+      </v-btn>
+    </div>
+
+    <v-card elevation="0" border rounded="lg">
 
       <v-data-table
         :headers="headers"
@@ -20,7 +20,7 @@
       >
         <template v-slot:[`item.tipe_diskon`]="{ item }">
           <v-chip
-            :color="item.tipe_diskon === 'persen' ? 'blue' : 'green'"
+            :color="item.tipe_diskon === 'persen' ? 'primary' : 'green'"
             size="small"
             class="text-uppercase "
           >
@@ -145,6 +145,7 @@
                   label="Berlaku Mulai"
                   type="date"
                   variant="outlined"
+                  :min="todayDate"
                 ></v-text-field>
               </v-col>
               <v-col cols="12" sm="6">
@@ -153,6 +154,7 @@
                   label="Berlaku Selesai"
                   type="date"
                   variant="outlined"
+                  :min="editedItem.berlaku_mulai || todayDate"
                 ></v-text-field>
               </v-col>
               <v-col cols="12">
@@ -169,10 +171,10 @@
 
         <v-card-actions>
           <v-spacer></v-spacer>
-          <v-btn color="blue-darken-1" variant="text" @click="closeDialog">
+          <v-btn color="primary" variant="text" @click="closeDialog">
             Batal
           </v-btn>
-          <v-btn color="blue-darken-1" variant="elevated" @click="saveItemApi(editedItem) ">
+          <v-btn color="primary" variant="elevated" @click="saveItemApi(editedItem) ">
             Simpan
           </v-btn>
         </v-card-actions>
@@ -184,7 +186,7 @@
         <v-card-title class="text-h5">Yakin ingin menghapus item ini?</v-card-title>
         <v-card-actions>
           <v-spacer></v-spacer>
-          <v-btn color="blue-darken-1" variant="text" @click="closeDialog">Batal</v-btn>
+          <v-btn color="primary" variant="text" @click="closeDialog">Batal</v-btn>
           <v-btn color="error" variant="elevated" @click="deleteItemApi">Hapus</v-btn>
           <v-spacer></v-spacer>
         </v-card-actions>
@@ -206,6 +208,12 @@ const editedIndex = ref(-1);
 const errorMessage = ref(''); 
 const isEditing = ref(false);
 const API_URL = 'admin/promo'; 
+
+const todayDate = computed(() => {
+  const d = new Date();
+  d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
+  return d.toISOString().substring(0, 10);
+});
 
 const formatRupiah = (value) => {
   if (!value) return 'Rp 0';

@@ -1,17 +1,18 @@
 <script setup>
-import {fetchUser, state, isAuthenticated, logout, userRole } from './stores/auth';
-import Header from './components/Menu/Header.vue'; // <-- Impor komponen baru
+import { useAuthStore } from './stores/auth';
+import Header from './components/Menu/Header.vue';
 import Footer from './components/Menu/Footer.vue';
-import * as auth from './stores/auth.js'; // <-- Impor auth.js
 import { ref, onMounted, computed } from 'vue';
 import Sidebar from './components/Menu/Sidebar.vue';
+
+const auth = useAuthStore();
+
 onMounted(() => {
-  fetchUser();
+  auth.fetchUser();
 });
 
-
 const drawer = ref(true);
-const isOwner = computed(() => auth.isAuthenticated.value && userRole.value === 'owner');
+const isOwner = computed(() => auth.isAuthenticated && auth.userRole === 'owner');
 
 </script>
 
@@ -47,4 +48,6 @@ const isOwner = computed(() => auth.isAuthenticated.value && userRole.value === 
 .logo.vue:hover {
   filter: drop-shadow(0 0 2em #42b883aa);
 } */
+
+
 </style>

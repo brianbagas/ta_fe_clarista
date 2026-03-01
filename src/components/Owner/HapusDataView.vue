@@ -1,8 +1,8 @@
 <template>
   <v-container>
     <v-card>
-      <v-card-title class="d-flex text-left pe-2 text-h5 bg-grey-lighten-4">
-        <v-icon icon="mdi-delete-restore" class="me-2"></v-icon>
+      <v-card-title class="d-flex text-left pe-2 text-h5 font-weight-bold bg-grey-lighten-4" style="color: #333333;">
+        <v-icon icon="mdi-delete-restore" color="grey-darken-2" class="me-2"></v-icon>
         Data Terhapus (Sampah)
       </v-card-title>
 

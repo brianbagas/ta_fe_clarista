@@ -1,7 +1,7 @@
 <template>
   <v-container class="py-10">
     <div class="text-center mb-10">
-      <h1 class="text-h4 font-weight-bold text-blue-darken-3 mb-2">
+      <h1 class="text-h4 font-weight-bold text-primary mb-2">
         Pilihan Kamar Kami
       </h1>
       <p class="text-subtitle-1 text-grey-darken-1">

@@ -3,9 +3,9 @@
     <v-list-item
       v-if="isCustomer"
       prepend-icon="mdi-account-circle"
-      :title="auth.state.user?.name"
+      :title="auth.user?.name"
       subtitle="Customer Clarista"
-      class="pa-4 bg-blue-darken-4 text-white"
+      class="pa-4 bg-primary text-white"
     ></v-list-item>
 
     <v-divider></v-divider>
@@ -24,17 +24,22 @@
         <v-list-item @click="auth.logout" prepend-icon="mdi-logout" title="Logout" base-color="error" class="mt-4" />
       </template>
 
-      <template v-if="!auth.isAuthenticated.value">
+      <template v-if="!auth.isAuthenticated">
         <v-list-item prepend-icon="mdi-login" title="Login" to="/login"></v-list-item>
         <v-list-item prepend-icon="mdi-account-plus" title="Register" to="/register"></v-list-item>
       </template>
     </v-list>
   </v-navigation-drawer>
 
-  <v-app-bar app class="bg-blue-darken-4" elevation="2">
+  <v-app-bar app class="bg-white px-4 px-md-8" elevation="2">
     
-    <v-toolbar-title>Clarista Homestay</v-toolbar-title>
-    
+    <v-toolbar-title><v-img height="65px" 
+      max-width="180px" 
+      contain
+      src="/public/tinyLogo.webp">
+
+    </v-img></v-toolbar-title>
+
     <v-spacer></v-spacer>
 
     <div class="d-none d-md-flex align-center" v-if="!isOwner">
@@ -43,7 +48,7 @@
       <v-btn variant="text" to="/promo">Promo</v-btn>
       <v-btn variant="text" to="/booking">Booking</v-btn>
 
-      <template v-if="!auth.isAuthenticated.value">
+      <template v-if="!auth.isAuthenticated">
         <v-btn variant="text" to="/login">Login</v-btn>
         <v-btn variant="outlined" class="ml-2" to="/register">Register</v-btn>
       </template>
@@ -52,7 +57,7 @@
         <template v-slot:activator="{ props }">
           <v-btn v-bind="props" class="ml-4" variant="tonal">
             <v-icon start>mdi-account-circle</v-icon>
-            <span>{{ auth.state.user?.name }}</span>
+            <span>{{ auth.user?.name }}</span>
             <v-icon end>mdi-menu-down</v-icon>
           </v-btn>
         </template>
@@ -70,15 +75,17 @@
 </template>
 <script setup>
 import { ref, computed } from 'vue';
-import * as auth from '../../stores/auth.js';
+import { useAuthStore } from '../../stores/auth';
+
+const auth = useAuthStore();
 
 // State untuk drawer mobile
 const drawer = ref(false);
 
 const emit = defineEmits(['toggle-drawer']);
 
-const isOwner = computed(() => auth.isAuthenticated.value && auth.state.user?.role_id== 1);
-const isCustomer = computed(() => auth.isAuthenticated.value && auth.state.user?.role_id == 2);
+const isOwner = computed(() => auth.isAuthenticated && auth.user?.role_id == 1);
+const isCustomer = computed(() => auth.isAuthenticated && auth.user?.role_id == 2);
 
 const toggleDrawer = () => {
   emit('toggle-drawer');
@@ -86,6 +93,5 @@ const toggleDrawer = () => {
 </script>
 
 <style scoped>
-
 
 </style>

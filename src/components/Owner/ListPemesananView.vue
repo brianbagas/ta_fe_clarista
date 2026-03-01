@@ -2,7 +2,7 @@
   <v-container>
     <div class="d-flex justify-space-between align-center mb-6">
         <div>
-             <h1 class="text-h4 font-weight-bold">Manajemen Pesanan</h1>
+             <h1 class="text-h4 font-weight-bold" style="color: #333333;">Manajemen Pesanan</h1>
             <p class="text-grey-darken-1">Lihat dan kelola semua pesanan yang masuk.</p>
         </div>
     </div>
@@ -37,17 +37,22 @@
           variant="outlined"
           density="compact"
           class="mb-2"
+          @update:model-value="onSearchChange"
         ></v-text-field>
       </v-card-title>
 
-      <v-data-table
+      <v-data-table-server
         :headers="headers"
-        :items="filteredPemesanans"
-        :search="search"
+        :items="pemesanans"
+        :items-length="totalItems"
         :loading="loading"
+        :items-per-page="itemsPerPage"
+        :page="currentPage"
+        :sort-by="[{ key: sortByColumn, order: sortOrder }]"
         loading-text="Memuat data pesanan..."
         no-data-text="Tidak ada pesanan pada kategori ini."
         hover
+        @update:options="onTableOptionsChange"
       >
         <template v-slot:[`item.kode_booking`]="{ item }">
             <div class="text-left font-weight-bold">{{ item.kode_booking }}</div>
@@ -82,7 +87,6 @@
 
         <template v-slot:[`item.actions`]="{ item }">
           <div class="d-flex align-center justify-start gap-2">
-            <!-- Action Button Logic -->
             <v-btn 
                 v-if="isReadyToCheckIn(item)"
                 color="indigo" 
@@ -119,7 +123,6 @@
                 Check Out
             </v-btn>
 
-            <!-- Detail Button (Always Visible) -->
              <v-btn 
                 color="grey-darken-1" 
                 variant="text" 
@@ -131,7 +134,7 @@
             </v-btn>
           </div>
         </template>
-      </v-data-table>
+      </v-data-table-server>
     </v-card>
   </v-container>
 </template>
@@ -146,22 +149,56 @@ const loading = ref(true);
 const pemesanans = ref([]);
 const activeTab = ref('semua');
 
+// Pagination state
+const currentPage = ref(1);
+const itemsPerPage = ref(10);
+const totalItems = ref(0);
+const sortByColumn = ref('created_at');
+const sortOrder = ref('desc');
+
+// Debounce timer untuk search
+let searchTimer = null;
+
 const headers = [
   { title: 'Kode Booking', key: 'kode_booking', align: 'start' },
   { title: 'Nama Tamu', key: 'user.name', align: 'start' },
   { title: 'Check-in', key: 'tanggal_check_in', align: 'start' },
-  { title: 'Check-out', key: 'tanggal_check_out', align: 'start' }, // Reusing text slot for out, but label is Durasi/Out
+  { title: 'Check-out', key: 'tanggal_check_out', align: 'start' },
   { title: 'Tagihan', key: 'total_bayar', align: 'start' },
   { title: 'Status', key: 'status_pemesanan', align: 'start' },
   { title: 'Aksi', key: 'actions', sortable: false, align: 'start' },
 ];
 
+// Map tab ke query param status
+const getStatusParam = () => {
+  const tabMap = {
+    'semua': null,
+    'menunggu_pembayaran': 'menunggu_pembayaran',
+    'perlu_tindakan': 'perlu_tindakan',
+    'terkonfirmasi': 'dikonfirmasi',
+    'selesai_batal': 'selesai_batal',
+  };
+  return tabMap[activeTab.value] || null;
+};
+
 const fetchPemesanan = async () => {
-    loading.value = true;
+  loading.value = true;
   try {
-    const response = await apiClient.get('/admin/pemesanan');
+    const params = {
+      page: currentPage.value,
+      per_page: itemsPerPage.value,
+      sort_by: sortByColumn.value,
+      sort_order: sortOrder.value
+    };
+
+    const status = getStatusParam();
+    if (status) params.status = status;
+    if (search.value) params.search = search.value;
+
+    const response = await apiClient.get('/admin/pemesanan', { params });
     if (response.success) {
-      pemesanans.value = response.data;
+      pemesanans.value = response.data.data;
+      totalItems.value = response.data.total;
     }
   } catch (err) {
     console.error('Gagal memuat data pemesanan:', err);
@@ -170,30 +207,53 @@ const fetchPemesanan = async () => {
   }
 };
 
-// Computed Filters
-const filteredPemesanans = computed(() => {
-    return pemesanans.value.filter(p => {
-        if (activeTab.value === 'semua') return true;
-        
-        if (activeTab.value === 'menunggu_pembayaran') {
-            return p.status_pemesanan === 'menunggu_pembayaran';
-        }
+// Dipanggil saat pagination/sort berubah dari v-data-table-server
+const onTableOptionsChange = ({ page, itemsPerPage: perPage, sortBy }) => {
+  currentPage.value = page;
+  itemsPerPage.value = perPage;
+  
+  if (sortBy && sortBy.length > 0) {
+      sortByColumn.value = sortBy[0].key;
+      sortOrder.value = sortBy[0].order;
+  } else {
+      sortByColumn.value = 'created_at';
+      sortOrder.value = 'desc';
+  }
+  
+  fetchPemesanan();
+};
 
-        if (activeTab.value === 'perlu_tindakan') {
-            return p.status_pemesanan === 'menunggu_konfirmasi';
-        }
-        
-        if (activeTab.value === 'terkonfirmasi') {
-            return p.status_pemesanan === 'dikonfirmasi';
-        }
-        
-        if (activeTab.value === 'selesai_batal') {
-            return ['selesai', 'batal', 'tidak_datang'].includes(p.status_pemesanan);
-        }
-        
-        return true;
-    });
+// Debounce search agar tidak hit API setiap ketikan
+const onSearchChange = () => {
+  clearTimeout(searchTimer);
+  searchTimer = setTimeout(() => {
+    currentPage.value = 1;
+    fetchPemesanan();
+  }, 400);
+};
+
+// Reset ke page 1 saat tab berubah
+watch(activeTab, () => {
+  currentPage.value = 1;
+  fetchPemesanan();
 });
+
+// Badge counts — ambil dari endpoint terpisah agar tidak tergantung halaman aktif
+const counts = ref({ perlu_tindakan: 0, siap_checkin: 0 });
+
+const fetchCounts = async () => {
+  try {
+    // Hitung perlu verifikasi
+    const res1 = await apiClient.get('/admin/pemesanan', { params: { status: 'perlu_tindakan', per_page: 1 } });
+    if (res1.success) counts.value.perlu_tindakan = res1.data.total;
+
+    // Hitung terkonfirmasi (siap checkin)
+    const res2 = await apiClient.get('/admin/pemesanan', { params: { status: 'dikonfirmasi', per_page: 1 } });
+    if (res2.success) counts.value.siap_checkin = res2.data.total;
+  } catch (err) {
+    console.error('Gagal memuat counts:', err);
+  }
+};
 
 // Helper to get local date string YYYY-MM-DD
 const getLocalDateString = (dateObj) => {
@@ -203,30 +263,8 @@ const getLocalDateString = (dateObj) => {
     return `${year}-${month}-${day}`;
 };
 
-const counts = computed(() => {
-    const today = getLocalDateString(new Date());
-    let tindakan = 0;
-    let checkin = 0;
-    
-    pemesanans.value.forEach(p => {
-        const checkInDate = getLocalDateString(new Date(p.tanggal_check_in));
-        
-        // Perlu Verifikasi hanya jika status menunggu_konfirmasi
-        if(p.status_pemesanan === 'menunggu_konfirmasi') tindakan++;
-        
-        // Hitung yang siap checkin untuk badge di tab Terkonfirmasi
-         if (p.status_pemesanan === 'dikonfirmasi' && 
-                   checkInDate <= today && 
-                   isInternalCheckInPending(p)) checkin++;
-    });
-    
-    return { perlu_tindakan: tindakan, siap_checkin: checkin };
-});
-
 const isInternalCheckInPending = (pemesanan) => {
-    // Cek apakah ada unit yang status penempatannya 'pending'
     if(!pemesanan.detail_pemesanans) return false; 
-    
     return pemesanan.detail_pemesanans.some(detail => 
         detail.penempatan_kamars && detail.penempatan_kamars.some(p => p.status_penempatan === 'pending')
     );
@@ -241,7 +279,6 @@ const isReadyToCheckIn = (item) => {
 const hasActiveStay = (pemesanan) => {
     if (pemesanan.status_pemesanan === 'selesai' || pemesanan.status_pemesanan === 'batal') return false;
     if(!pemesanan.detail_pemesanans) return false;
-
     return pemesanan.detail_pemesanans.some(detail => 
         detail.penempatan_kamars && detail.penempatan_kamars.some(p => p.status_penempatan === 'assigned')
     );
@@ -275,5 +312,8 @@ const viewDetails = (item) => {
   router.push({ name: 'DetailPesananOwner', params: { id: item.id } });
 };
 
-onMounted(fetchPemesanan);
+onMounted(() => {
+  fetchPemesanan();
+  fetchCounts();
+});
 </script>
